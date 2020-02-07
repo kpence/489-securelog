@@ -20,7 +20,7 @@ class FileReaderWriter {
   public:
     FileReaderWriter(const string fname,
                      const string _s_key)
-      : filename(fname), s_key(_s_key), command_string()
+      : filename(fname), s_key(_s_key), record_string()
     {
       if (load_file(fname) == 1) {
         verify_key();
@@ -32,27 +32,27 @@ class FileReaderWriter {
     string decrypt_chunk(); // TODO every chunk, check if the chunk sig prefix is present
 
     // Command Parsing from Chunks
-    int parse_command(); //commands start with ^ and end with {@}$
-    string get_command_string();
-    string get_next_command_string();
+    int parse_record(); //records start with ^ and end with {@}$
+    string get_record_string();
+    string get_next_record_string();
 
     // Writing
-    int append_command(string cmd); //commands start with ^ and end with {@}$
+    int append_record(string rcd); //records start with ^ and end with {@}$
   protected:
   private:
     // Writing
     /* Instructions
-     *  Before we end a command, we insert @s until the end of a byte
+     *  Before we end a record, we insert @s until the end of a byte
      */
     int append_and_encrypt_chunk(string s);
 
     // I/O
     int load_file(string fname);
-    void read_chunk();
+    int read_chunk();
 
     // Verifying
     void check_corruption(string key); // TODO Check for corruption, for now assume
-    int verify_command(); // TODO checks if command_string has correct token attached
+    int verify_record(string rcd); // TODO checks if record_string has correct token attached
     int verify_key();
 
 
@@ -71,8 +71,8 @@ class FileReaderWriter {
     ifstream ifs;
     ofstream wfs; // write to file
 
-    // Parsing commands members
-    string command_string;
+    // Parsing recrod members
+    string record_string;
 };
 
 
@@ -141,55 +141,55 @@ int FileReaderWriter::append_and_encrypt_chunk(string chunk) {
 }
 
 /* Instructions
- *  Before we end a command, we insert @s until the end of a byte
+ *  Before we end a record, we insert @s until the end of a byte
  */
-int FileReaderWriter::append_command(string cmd)
+int FileReaderWriter::append_record(string rcd)
 {
-  // TODO (uncomment when done testing ) First verify the command
-  command_string = "^"+cmd;
-  //if (1 != verify_command())
+  // TODO (uncomment when done testing ) First verify the record
+  record_string = "^"+rcd;
+  //if (1 != verify_record())
     //return ret;
 
 
-  // Append the command with the appropriate number of @ padding signs
+  // Append the record with the appropriate number of @ padding signs
   // Example, say decyphered chunk length is 4
   //^123456$
   //^12345@$
   //^1234567@@@$
   //
   // V probably a better way to do this.... but w/e
-  int modulo = (cmd.length()+2) % DECRYPTED_CHUNK_SIZE;
+  int modulo = (rcd.length()+2) % DECRYPTED_CHUNK_SIZE;
   int padAts = (DECRYPTED_CHUNK_SIZE - modulo) % DECRYPTED_CHUNK_SIZE;
 
   // Get number of chunks to append
-  int num = (cmd.length()+2) / DECRYPTED_CHUNK_SIZE;
+  int num = (rcd.length()+2) / DECRYPTED_CHUNK_SIZE;
   if (modulo != 0) ++num;
 
   // For each of these (if last one, then add the @ padding), encrypt it, and append it to the file,
   int i;
   string send = "^";
   if (num == 1) {
-    send += cmd;
+    send += rcd;
     if (padAts > 0)
       send += string(padAts,'@');
     send += "$";
     append_and_encrypt_chunk(send);
   }
   else {
-    send += cmd.substr(0,DECRYPTED_CHUNK_SIZE-1);
-    cmd.erase(0,DECRYPTED_CHUNK_SIZE-1);
+    send += rcd.substr(0,DECRYPTED_CHUNK_SIZE-1);
+    rcd.erase(0,DECRYPTED_CHUNK_SIZE-1);
     append_and_encrypt_chunk(send); // TODO check the status for each of these append chunks, or just throw an exception
     for (i = 1; i < num; i++) {
       if (i == num-1) {
-        send = cmd;
-        cmd.erase(0,DECRYPTED_CHUNK_SIZE-1-padAts);
+        send = rcd;
+        rcd.erase(0,DECRYPTED_CHUNK_SIZE-1-padAts);
         if (padAts > 0)
           send += string(padAts,'@');
         send += "$";
       }
       else {
-        send = cmd.substr(0,DECRYPTED_CHUNK_SIZE);
-        cmd.erase(0,DECRYPTED_CHUNK_SIZE);
+        send = rcd.substr(0,DECRYPTED_CHUNK_SIZE);
+        rcd.erase(0,DECRYPTED_CHUNK_SIZE);
       }
       append_and_encrypt_chunk(send);
     }
@@ -198,52 +198,67 @@ int FileReaderWriter::append_command(string cmd)
   return -1;
 }
 
-int FileReaderWriter::parse_command() {
+int FileReaderWriter::parse_record() {
   // Read new chunks until you reach a $
   string s = decrypt_next_chunk();
-  command_string.clear();
+  if (s.empty()) {
+    record_string = "";
+    return 0;
+  }
+  record_string.clear();
   //cout << "decrypting: " << s << endl;
 
 
-  // TODO verify the command is correctly formed during parsing
+  // TODO verify the record is correctly formed during parsing
 
 
   while (s[DECRYPTED_CHUNK_SIZE-1] != '$') {
-    command_string += s;
+    record_string += s;
     s = decrypt_next_chunk();
+    if (s.empty()) {
+      record_string = "";
+      return 0;
+    }
   }
-  command_string += s;
-  //cout << "decrypting, fin: " << command_string << endl;
+  record_string += s;
+  //cout << "decrypting, fin: " << record_string << endl;
 
-  int ret = verify_command();
+  int ret = verify_record(record_string);
   return ret;
 }
 
-string FileReaderWriter::get_next_command_string() {
-  parse_command();
-  string s = get_command_string();
+string FileReaderWriter::get_next_record_string() {
+  string s;
+  if (parse_record() != 0)
+    s = get_record_string();
   return s;
 }
 
-string FileReaderWriter::get_command_string() {
+string FileReaderWriter::get_record_string() {
   int i;
-  if ((i = command_string.find_first_of('@')) != string::npos)
-    return command_string.substr(1,i-1);
+  int keylen = s_key.length();
+  if ((i = record_string.find_first_of('@')) != string::npos)
+    return record_string.substr(1+keylen,i-1-keylen);
   else
-    return command_string.substr(1);
+    return record_string.substr(1+keylen);
 }
 
 // TODO Make sure that also there are NO special characters, this all is exploitable
-int FileReaderWriter::verify_command() {
-  if (get_command_string().compare(0, s_key.length(),s_key) != 0) {
-    cout << "FAILURE: This is a bad key for this command! \n";
+int FileReaderWriter::verify_record(string rcd) {
+  if (rcd.empty())
     return 0;
+  if (rcd[0] != '^' || rcd.back() != '$')
+    return 0;
+  if (rcd.compare(1, s_key.length(),s_key) != 0) {
+    //cout << "FAILURE: This is a bad key for this record! \n";
+    return 0; // TODO make this return 0
   }
   return 1;
 }
 
 int FileReaderWriter::verify_key() {
-  read_chunk();
+  if (read_chunk() == 0)
+    return 0;
 
   // Now decrypt the signature chunk
   string s = decrypt_chunk();
@@ -258,25 +273,27 @@ int FileReaderWriter::verify_key() {
   return 1;
 }
 
-void FileReaderWriter::read_chunk() {
+int FileReaderWriter::read_chunk() {
   char buffer[CHUNK_SIZE];
+  if (ifs.peek() == EOF) {
+    return 0;
+  }
   ifs.read(buffer, CHUNK_SIZE);
   s_cipher_base64 = string(buffer, CHUNK_SIZE);
+  return 1;
 }
 int FileReaderWriter::load_file(string fname) {
-   ifs = ifstream(fname);
-   //wfs.open(fname, ios_base::app); // append
-   ifstream in(fname);
-   if (in.peek() == EOF) {
-     //cout << "CREATE NEW\n";
-     append_and_encrypt_chunk("THE KEY IS GREAT");
-     return 0;
-   }
-   return 1;
+  ifs = ifstream(fname);
+  if (ifs.peek() == EOF) {
+    append_and_encrypt_chunk("THE KEY IS GREAT");
+    return 0;
+  }
+  return 1;
 }
 
 string FileReaderWriter::decrypt_next_chunk() {
-  read_chunk();
+  if (read_chunk() == 0)
+    return "";
   //cout << "Finished reading chunk : " << s_cipher_base64 <<"\n";
   return decrypt_chunk();
 }
@@ -494,12 +511,14 @@ int main(int argc, char** argv) {
       case 'r':
           t = stoi(string(optarg));
           for (int i = 0; i < t; i++) {
-            string s = frw.get_next_command_string();
+            string s = frw.get_next_record_string();
+            if (s.empty())
+              break;
             cout << "> " << s << endl;
           }
           break;
       case 'w':
-          cout << frw.append_command(optarg) << endl;
+          cout << frw.append_record(key + optarg) << endl;
           break;
       default:
           std::cerr << "Invalid Command Line Argument\n";
