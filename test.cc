@@ -91,6 +91,7 @@ int FileReaderWriter::append_and_encrypt_chunk(string chunk) {
 
   char* ciphertext_base64;
   unsigned char ciphertext[128];
+  memset(ciphertext,0,128);
   unsigned char *prepend_ciphertext;
   unsigned char salt[8];
   ERR_load_crypto_strings();
@@ -109,7 +110,7 @@ int FileReaderWriter::append_and_encrypt_chunk(string chunk) {
     salt[i]=rand();
 
   // Step one (Part B) Create the key-stretched key
-  initAES(s_key.c_str(), salt, key, iv);
+  initAES(s_key, salt, key, iv);
 
   // Step two Perform the AES encryption
   cipher_len = encrypt((unsigned char*)chunk.c_str(), DECRYPTED_CHUNK_SIZE, key, iv, ciphertext);
@@ -122,7 +123,7 @@ int FileReaderWriter::append_and_encrypt_chunk(string chunk) {
   cipher_len += 16;
 
   // Step four Encode in Base64
-  base64Encode(ciphertext, cipher_len, &ciphertext_base64);
+  base64Encode(prepend_ciphertext, cipher_len, &ciphertext_base64);
 
   //free(cipher_alloced_mem);
 
@@ -142,16 +143,16 @@ int FileReaderWriter::append_and_encrypt_chunk(string chunk) {
 int FileReaderWriter::append_command(string cmd)
 {
   // TODO (uncomment when done testing ) First verify the command
-  command_string = "$"+cmd;
+  command_string = "^"+cmd;
   //if (1 != verify_command())
     //return ret;
 
 
   // Append the command with the appropriate number of @ padding signs
   // Example, say decyphered chunk length is 4
-  //$123456^
-  //$12345@^
-  //$1234567@@@^
+  //^123456$
+  //^12345@$
+  //^1234567@@@$
   //
   // V probably a better way to do this.... but w/e
   int modulo = (cmd.length()+2) % DECRYPTED_CHUNK_SIZE;
@@ -163,12 +164,12 @@ int FileReaderWriter::append_command(string cmd)
 
   // For each of these (if last one, then add the @ padding), encrypt it, and append it to the file,
   int i;
-  string send = "$";
+  string send = "^";
   if (num == 1) {
     send += cmd;
     if (padAts > 0)
       send += string(padAts,'@');
-    send += "^";
+    send += "$";
     append_and_encrypt_chunk(send);
   }
   else {
@@ -181,7 +182,7 @@ int FileReaderWriter::append_command(string cmd)
         cmd.erase(0,DECRYPTED_CHUNK_SIZE-1-padAts);
         if (padAts > 0)
           send += string(padAts,'@');
-        send += "^";
+        send += "$";
       }
       else {
         send = cmd.substr(0,DECRYPTED_CHUNK_SIZE);
@@ -190,36 +191,30 @@ int FileReaderWriter::append_command(string cmd)
       append_and_encrypt_chunk(send);
     }
   }
+
+  return -1;
 }
 
 int FileReaderWriter::parse_command() {
   // Read new chunks until you reach a $
-  cout << "Parse: " << endl;
   string s = decrypt_next_chunk();
 
 
   // TODO verify the command is correctly formed during parsing
 
-  cout << "Parse s: " << s << endl;
 
   while (s[DECRYPTED_CHUNK_SIZE-1] != '$') {
-    cout << "Parse NOT NOT over, here's the command_string : " << command_string<< endl;
     command_string += s;
     s = decrypt_next_chunk();
-    cout << "Parse NOT NOT over, here's the command_string : " << command_string<< endl;
   }
-  cout << "Parse NOT over, here's the command_string : " << command_string<< endl;
   command_string += s;
 
-  cout << "Parse over, here's the command_string : " << command_string<< endl;
   int ret = verify_command();
   return ret;
 }
 
 string FileReaderWriter::get_next_command_string() {
-  cout << "about to parse command: here''s the raw command_string " << command_string <<endl;;
   parse_command();
-  cout << "parsed command\n";
   return get_command_string();
 }
 
@@ -286,29 +281,23 @@ string FileReaderWriter::decrypt_chunk() {
   unsigned char key[32];
   unsigned char iv[32];
 
-  cout << "DECODE: \n";
   if (strncmp((const char*)ciphertext,"Salted__",8) == 0) {
     memcpy(salt,&ciphertext[8],8);
     cipher_alloced_mem = ciphertext;
     ciphertext += 16;
     cipher_len -= 16;
   }
-  cout << "DECODE 1: \n";
-  initAES(s_key.c_str(), salt, key, iv);
-  cout << "DECODE 2: \n";
+  initAES(s_key, salt, key, iv);
+
 
   string result = decrypt(ciphertext, cipher_len, key, iv);
-  cout << "DECODE 3: \n";
 
   free(cipher_alloced_mem);
-  cout << "DECODE 4: \n";
 
   // Clean up
   EVP_cleanup();
   ERR_free_strings();
-  cout << "DECODE 5: \n";
 
-  result.pop_back();
   return result;
 }
 
@@ -321,7 +310,6 @@ void FileReaderWriter::handleOpenSSLErrors(void)
 string FileReaderWriter::decrypt(unsigned char *ciphertext, int ciphertext_len, unsigned char *key,
   unsigned char *iv ) {
 
-  cout << "DECRYPT 1: \n";
 
   EVP_CIPHER_CTX *ctx;
   unsigned char *plaintexts;
@@ -330,11 +318,9 @@ string FileReaderWriter::decrypt(unsigned char *ciphertext, int ciphertext_len, 
   unsigned char* plaintext = new unsigned char[ciphertext_len];
   bzero(plaintext,ciphertext_len);
 
-  cout << "DECRYPT 2: \n";
   /* Create and initialise the context */
   if(!(ctx = EVP_CIPHER_CTX_new())) handleOpenSSLErrors();
 
-  cout << "DECRYPT 3: \n";
 
   /* Initialise the decryption operation. IMPORTANT - ensure you use a key
    * and IV size appropriate for your cipher
@@ -344,17 +330,14 @@ string FileReaderWriter::decrypt(unsigned char *ciphertext, int ciphertext_len, 
   if(1 != EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv))
     handleOpenSSLErrors();
 
-  cout << "DECRYPT 4: \n";
 
   EVP_CIPHER_CTX_set_key_length(ctx, EVP_MAX_KEY_LENGTH);
 
  /* Provide the message to be decrypted, and obtain the plaintext output.
    * EVP_DecryptUpdate can be called multiple times if necessary
    */
-  cout << "DECRYPT 5: \n";
   if(1 != EVP_DecryptUpdate(ctx, plaintext, &len, ciphertext, ciphertext_len))
     handleOpenSSLErrors();
-  cout << "DECRYPT 5.2: \n";
 
   plaintext_len = len;
 
@@ -363,13 +346,11 @@ string FileReaderWriter::decrypt(unsigned char *ciphertext, int ciphertext_len, 
    */
   if(1 != EVP_DecryptFinal_ex(ctx, plaintext + len, &len)) handleOpenSSLErrors();
   plaintext_len += len;
-  cout << "DECRYPT 6: \n";
 
 
   /* Add the null terminator */
   plaintext[plaintext_len] = 0;
 
-  cout << "DECRYPT 7: \n";
   /* Clean up */
   EVP_CIPHER_CTX_free(ctx);
   string ret = (char*)plaintext;
@@ -436,7 +417,6 @@ void FileReaderWriter::base64Decode(char* b64message, unsigned char** buffer, si
 int FileReaderWriter::encrypt(unsigned char *plaintext, int plaintext_len, unsigned char *key,
             unsigned char *iv, unsigned char *ciphertext)
 {
-    cout << "TEST: startin encrypt\n";
     EVP_CIPHER_CTX *ctx;
 
     int len;
@@ -447,9 +427,6 @@ int FileReaderWriter::encrypt(unsigned char *plaintext, int plaintext_len, unsig
     if(!(ctx = EVP_CIPHER_CTX_new()))
       handleOpenSSLErrors();
 
-    cout << ciphertext << endl;
-    cout << "TEST4: finished encrypt\n";
-
     /*
      * Initialise the encryption operation. IMPORTANT - ensure you use a key
      * and IV size appropriate for your cipher
@@ -459,7 +436,6 @@ int FileReaderWriter::encrypt(unsigned char *plaintext, int plaintext_len, unsig
      */
     if(1 != EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv))
       handleOpenSSLErrors();
-    cout << "TEST3: finished encrypt\n";
 
 
     EVP_CIPHER_CTX_set_key_length(ctx, EVP_MAX_KEY_LENGTH);
@@ -469,13 +445,10 @@ int FileReaderWriter::encrypt(unsigned char *plaintext, int plaintext_len, unsig
      * Provide the message to be encrypted, and obtain the encrypted output.
      * EVP_EncryptUpdate can be called multiple times if necessary
      */
-    cout << "TESTINFO BEFORE: " << endl;
-    cout << "TESTINFO: " << ciphertext << endl;
 
     if(1 != EVP_EncryptUpdate(ctx, ciphertext, &len, plaintext, plaintext_len))
       handleOpenSSLErrors();
     ciphertext_len = len;
-    cout << "TEST2: finished encrypt\n";
 
     /*
      * Finalise the encryption. Further ciphertext bytes may be written at
@@ -484,12 +457,11 @@ int FileReaderWriter::encrypt(unsigned char *plaintext, int plaintext_len, unsig
     if(1 != EVP_EncryptFinal_ex(ctx, ciphertext + len, &len))
       handleOpenSSLErrors();
     ciphertext_len += len;
-    cout << "TEST1: finished encrypt\n";
 
+    ciphertext[ciphertext_len] = 0;
     /* Clean up */
     EVP_CIPHER_CTX_free(ctx);
 
-    cout << "TEST: finished encrypt\n";
     return ciphertext_len;
 }
 
@@ -508,7 +480,7 @@ int main(int argc, char** argv) {
           t = stoi(string(optarg));
           for (int i = 0; i < t; i++) {
             string s = frw.get_next_command_string();
-            cout << "HERE'S THE ACTUAL OUTPUT: " << s << endl;
+            cout << "> " << s << endl;
           }
           break;
       case 'w':
