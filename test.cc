@@ -7,11 +7,15 @@
 #include <string>
 #include <fstream>
 
+#include <thread>
+#include <chrono>
+
 #include <random>
 #include <functional>
 #include <algorithm>
 using namespace std;
 
+#define RECORD_MAX_SIZE 16*3 - 2
 #define DECRYPTED_CHUNK_SIZE 16
 #define CHUNK_SIZE 64
 #define VERIFY_CHUNK_STR "THE KEY IS GREAT"
@@ -86,7 +90,7 @@ class FileReaderWriter {
  */
 int FileReaderWriter::append_and_encrypt_chunk(string chunk) {
   // Append to end of the file
-  //cout << "Appending chunk: " << chunk << endl;
+  cout << "Appending chunk: " << chunk << endl;
 
   size_t cipher_len;
 
@@ -146,7 +150,12 @@ int FileReaderWriter::append_and_encrypt_chunk(string chunk) {
 int FileReaderWriter::append_record(string rcd)
 {
   if (rcd.find_first_not_of("01234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-") != string::npos) {
-    cout << "Append record: Improper record string \n";
+    cout << "FAIL: Append record: Improper record string \n";
+    return 0;
+  }
+
+  if (rcd.length() >= RECORD_MAX_SIZE) {
+    cout << "FAIL: Append record: Record too large\n";
     return 0;
   }
   // TODO (uncomment when done testing ) First verify the record
@@ -250,8 +259,9 @@ string FileReaderWriter::get_record_string() {
   int keylen = s_key.length();
   if ((i = record_string.find_first_of('@')) != string::npos)
     return record_string.substr(1+keylen,i-1-keylen);
-  else
-    return record_string.substr(1+keylen);
+  else {
+    return record_string.substr(1+keylen,record_string.length()-2-keylen);
+  }
 }
 
 // TODO Make sure that also there are NO special characters, this all is exploitable
@@ -320,7 +330,7 @@ int FileReaderWriter::load_file(string fname) {
 string FileReaderWriter::decrypt_next_chunk() {
   if (read_chunk() == 0)
     return "";
-  //cout << "Finished reading chunk : " << s_cipher_base64 <<"\n";
+  cout << "Finished reading chunk : " << s_cipher_base64 <<"\n";
   return decrypt_chunk();
 }
 
@@ -538,13 +548,15 @@ int main(int argc, char** argv) {
           t = stoi(string(optarg));
           for (int i = 0; i < t; i++) {
             string s = frw.get_next_record_string();
+            //this_thread::sleep_for(chrono::seconds(1));
             if (s.empty())
               break;
             cout << "> " << s << endl;
           }
           break;
       case 'w':
-          cout << frw.append_record(key + optarg) << endl;
+          //cout << frw.append_record(key + optarg) << endl;
+          frw.append_record(key + optarg);
           break;
       default:
           std::cerr << "Invalid Command Line Argument\n";
