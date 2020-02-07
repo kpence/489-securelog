@@ -22,8 +22,9 @@ class FileReaderWriter {
                      const string _s_key)
       : filename(fname), s_key(_s_key), command_string()
     {
-      load_file(fname);
-      verify_key();
+      if (load_file(fname) == 1) {
+        verify_key();
+      }
     }
 
     // Reading
@@ -46,7 +47,7 @@ class FileReaderWriter {
     int append_and_encrypt_chunk(string s);
 
     // I/O
-    void load_file(string fname);
+    int load_file(string fname);
     void read_chunk();
 
     // Verifying
@@ -85,7 +86,7 @@ class FileReaderWriter {
  */
 int FileReaderWriter::append_and_encrypt_chunk(string chunk) {
   // Append to end of the file
-  cout << "Appending chunk: " << chunk << endl;
+  //cout << "Appending chunk: " << chunk << endl;
 
   size_t cipher_len;
 
@@ -132,8 +133,10 @@ int FileReaderWriter::append_and_encrypt_chunk(string chunk) {
   ERR_free_strings();
 
   // Step five append file with it
-  wfs << string((char*)ciphertext_base64, CHUNK_SIZE);
-  cout << "CHUNK MADE: " << string((char*)ciphertext_base64, CHUNK_SIZE) << endl;
+  ofstream _wfs;
+  _wfs.open(filename, ios_base::app);
+  _wfs << string((char*)ciphertext_base64, CHUNK_SIZE);
+  //cout << "CHUNK MADE: " << string((char*)ciphertext_base64, CHUNK_SIZE) << endl;
   return 0;
 }
 
@@ -156,7 +159,7 @@ int FileReaderWriter::append_command(string cmd)
   //
   // V probably a better way to do this.... but w/e
   int modulo = (cmd.length()+2) % DECRYPTED_CHUNK_SIZE;
-  int padAts = (DECRYPTED_CHUNK_SIZE - (modulo) % DECRYPTED_CHUNK_SIZE);
+  int padAts = (DECRYPTED_CHUNK_SIZE - modulo) % DECRYPTED_CHUNK_SIZE;
 
   // Get number of chunks to append
   int num = (cmd.length()+2) / DECRYPTED_CHUNK_SIZE;
@@ -198,6 +201,8 @@ int FileReaderWriter::append_command(string cmd)
 int FileReaderWriter::parse_command() {
   // Read new chunks until you reach a $
   string s = decrypt_next_chunk();
+  command_string.clear();
+  //cout << "decrypting: " << s << endl;
 
 
   // TODO verify the command is correctly formed during parsing
@@ -208,6 +213,7 @@ int FileReaderWriter::parse_command() {
     s = decrypt_next_chunk();
   }
   command_string += s;
+  //cout << "decrypting, fin: " << command_string << endl;
 
   int ret = verify_command();
   return ret;
@@ -215,7 +221,8 @@ int FileReaderWriter::parse_command() {
 
 string FileReaderWriter::get_next_command_string() {
   parse_command();
-  return get_command_string();
+  string s = get_command_string();
+  return s;
 }
 
 string FileReaderWriter::get_command_string() {
@@ -256,20 +263,28 @@ void FileReaderWriter::read_chunk() {
   ifs.read(buffer, CHUNK_SIZE);
   s_cipher_base64 = string(buffer, CHUNK_SIZE);
 }
-void FileReaderWriter::load_file(string fname) {
+int FileReaderWriter::load_file(string fname) {
    ifs = ifstream(fname);
-   wfs.open(fname, ios_base::app); // append
+   //wfs.open(fname, ios_base::app); // append
+   ifstream in(fname);
+   if (in.peek() == EOF) {
+     //cout << "CREATE NEW\n";
+     append_and_encrypt_chunk("THE KEY IS GREAT");
+     return 0;
+   }
+   return 1;
 }
 
 string FileReaderWriter::decrypt_next_chunk() {
   read_chunk();
-  cout << "Finished reading chunk : " << s_cipher_base64 <<"\n";
+  //cout << "Finished reading chunk : " << s_cipher_base64 <<"\n";
   return decrypt_chunk();
 }
 
 string FileReaderWriter::decrypt_chunk() {
   // encrypted using aes-256-cbc with the
   s_cipher_base64.push_back('\n');
+  //cout << s_cipher_base64;
   char* ciphertext_base64 = (char*) s_cipher_base64.c_str();
   int decryptedtext_len, ciphertext_len;
   size_t cipher_len;
@@ -484,7 +499,7 @@ int main(int argc, char** argv) {
           }
           break;
       case 'w':
-          cout << frw.append_command("testing") << endl;
+          cout << frw.append_command(optarg) << endl;
           break;
       default:
           std::cerr << "Invalid Command Line Argument\n";
