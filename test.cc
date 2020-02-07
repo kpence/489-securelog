@@ -461,6 +461,10 @@ int FileReaderWriter::encrypt(unsigned char *plaintext, int plaintext_len, unsig
       handleOpenSSLErrors();
     cout << "TEST3: finished encrypt\n";
 
+
+    EVP_CIPHER_CTX_set_key_length(ctx, EVP_MAX_KEY_LENGTH);
+
+
     /*
      * Provide the message to be encrypted, and obtain the encrypted output.
      * EVP_EncryptUpdate can be called multiple times if necessary
@@ -502,8 +506,10 @@ int main(int argc, char** argv) {
           key = optarg;break;
       case 'r':
           t = stoi(string(optarg));
-          for (int i = 0; i < t; i++)
-            cout << frw.get_next_command_string() << endl;
+          for (int i = 0; i < t; i++) {
+            string s = frw.get_next_command_string();
+            cout << "HERE'S THE ACTUAL OUTPUT: " << s << endl;
+          }
           break;
       case 'w':
           cout << frw.append_command("testing") << endl;
