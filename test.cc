@@ -52,7 +52,7 @@ class FileReaderWriter {
 
     // Verifying
     void check_corruption(string key); // TODO Check for corruption, for now assume
-    int verify_record(string rcd); // TODO checks if record_string has correct token attached
+    int validate_record(string rcd); // TODO checks if record_string has correct token attached
     int verify_key();
 
 
@@ -145,9 +145,13 @@ int FileReaderWriter::append_and_encrypt_chunk(string chunk) {
  */
 int FileReaderWriter::append_record(string rcd)
 {
+  if (rcd.find_first_not_of("01234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-") != string::npos) {
+    cout << "Append record: Improper record string \n";
+    return 0;
+  }
   // TODO (uncomment when done testing ) First verify the record
   record_string = "^"+rcd;
-  //if (1 != verify_record())
+  //if (1 != validate_record())
     //return ret;
 
 
@@ -164,6 +168,13 @@ int FileReaderWriter::append_record(string rcd)
   // Get number of chunks to append
   int num = (rcd.length()+2) / DECRYPTED_CHUNK_SIZE;
   if (modulo != 0) ++num;
+
+  record_string += string(padAts,'@') + "$";
+
+  if (validate_record(record_string) == 0) {
+    cout << "failed to validate record: " << record_string << "\n";
+    return 0;
+  }
 
   // For each of these (if last one, then add the @ padding), encrypt it, and append it to the file,
   int i;
@@ -195,7 +206,7 @@ int FileReaderWriter::append_record(string rcd)
     }
   }
 
-  return -1;
+  return 1;
 }
 
 int FileReaderWriter::parse_record() {
@@ -223,7 +234,7 @@ int FileReaderWriter::parse_record() {
   record_string += s;
   //cout << "decrypting, fin: " << record_string << endl;
 
-  int ret = verify_record(record_string);
+  int ret = validate_record(record_string);
   return ret;
 }
 
@@ -244,14 +255,29 @@ string FileReaderWriter::get_record_string() {
 }
 
 // TODO Make sure that also there are NO special characters, this all is exploitable
-int FileReaderWriter::verify_record(string rcd) {
+int FileReaderWriter::validate_record(string rcd) {
   if (rcd.empty())
     return 0;
   if (rcd[0] != '^' || rcd.back() != '$')
     return 0;
+
+  // 1. Make sure it contains the key at the start
   if (rcd.compare(1, s_key.length(),s_key) != 0) {
-    //cout << "FAILURE: This is a bad key for this record! \n";
-    return 0; // TODO make this return 0
+    return 0;
+  }
+  
+
+  // 2. Make sure the record's length has factor of DECRYPTED_CHUNK_SIZE
+  // 3. Make sure that it isn't too long
+
+  // Now cutting off padding ats
+  rcd.pop_back(); // remove $
+  rcd = rcd.substr(1, rcd.find_last_not_of('@')); // remove ^ start and @ padding
+
+  // 4. Make sure there's no special characters besides slashes
+  if (rcd.find_first_not_of("01234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-") != string::npos) {
+    cout << "Improper record string \n";
+    return 0;
   }
   return 1;
 }
