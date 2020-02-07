@@ -249,8 +249,8 @@ int FileReaderWriter::verify_key() {
   // Check if signature is valid
   if (0 != strncmp((char*)s.c_str(),(char*)VERIFY_CHUNK_STR,(size_t)DECRYPTED_CHUNK_SIZE)) {
     // Failure, bad file
-    return 0;
     cout << "FAILURE: Failed to verify signature, returning -1 and mkae sure to exit with 255 and output Integrity violation\n";
+    return 0;
   }
   
   return 1;
