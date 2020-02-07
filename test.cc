@@ -98,6 +98,7 @@ int FileReaderWriter::append_and_encrypt_chunk(string chunk) {
   unsigned char ciphertext[128];
   memset(ciphertext,0,128);
   unsigned char *prepend_ciphertext;
+  unsigned char salt_save[8];
   unsigned char salt[8];
   ERR_load_crypto_strings();
 
@@ -114,8 +115,22 @@ int FileReaderWriter::append_and_encrypt_chunk(string chunk) {
   for (i = 0; i < 8; i++)
     salt[i]=rand();
 
+  memcpy(salt_save, salt,8);
+  memcpy(salt, salt_save,8);
+
+  //cout << "TEST: salt before " << salt << endl;
+  //cout << "TEST: salt_Save before " << salt_save << endl;
+  //cout << "TEST: cmp before " << strncmp((char*)salt_save,(char*)salt,8) << endl;
+
   // Step one (Part B) Create the key-stretched key
-  initAES(s_key, salt, key, iv);
+  initAES(s_key.c_str(), salt, key, iv);
+  //cout << "TEST: salt right after " << salt << endl;
+  //cout << "TEST: salt_save " << salt_save << endl;
+  
+  if (strncmp((char*)salt_save, (char*)salt, 8)!=0) {
+    cout << "Mysterious issue! The salt has changed during the key stretching process\n";
+    return 0;
+  }
 
   // Step two Perform the AES encryption
   cipher_len = encrypt((unsigned char*)chunk.c_str(), DECRYPTED_CHUNK_SIZE, key, iv, ciphertext);
@@ -124,7 +139,13 @@ int FileReaderWriter::append_and_encrypt_chunk(string chunk) {
   prepend_ciphertext = (unsigned char*)malloc(cipher_len+16);
   strcpy( (char*)prepend_ciphertext,"Salted__");
   strncat((char*)prepend_ciphertext,(char*)salt,8);
+
+  //cout << "AFTER Prepended : " << prepend_ciphertext << endl;
   strncat((char*)prepend_ciphertext,(char*)ciphertext,cipher_len);
+
+  //cout << "TEST: salt after " << salt << endl;
+  //cout << "TEST: after also " << prepend_ciphertext << endl;
+
   cipher_len += 16;
 
   // Step four Encode in Base64
@@ -141,7 +162,7 @@ int FileReaderWriter::append_and_encrypt_chunk(string chunk) {
   _wfs.open(filename, ios_base::app);
   _wfs << string((char*)ciphertext_base64, CHUNK_SIZE);
   //cout << "CHUNK MADE: " << string((char*)ciphertext_base64, CHUNK_SIZE) << endl;
-  return 0;
+  return 1;
 }
 
 /* Instructions
@@ -355,7 +376,7 @@ string FileReaderWriter::decrypt_chunk() {
     ciphertext += 16;
     cipher_len -= 16;
   }
-  initAES(s_key, salt, key, iv);
+  initAES(s_key.c_str(), salt, key, iv);
 
 
   string result = decrypt(ciphertext, cipher_len, key, iv);
@@ -397,9 +418,6 @@ string FileReaderWriter::decrypt(unsigned char *ciphertext, int ciphertext_len, 
    * is 128 bits */
   if(1 != EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv))
     handleOpenSSLErrors();
-
-
-  EVP_CIPHER_CTX_set_key_length(ctx, EVP_MAX_KEY_LENGTH);
 
  /* Provide the message to be decrypted, and obtain the plaintext output.
    * EVP_DecryptUpdate can be called multiple times if necessary
