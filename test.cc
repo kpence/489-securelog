@@ -28,6 +28,7 @@ class FileReaderWriter {
     {
       if (load_file(fname) == 1) {
         verify_key();
+        cout << "DEV OUTPUT: Key is verified. \n";
       }
     }
 
@@ -405,10 +406,15 @@ string FileReaderWriter::decrypt(unsigned char *ciphertext, int ciphertext_len, 
   int len;
   int plaintext_len;
   unsigned char* plaintext = new unsigned char[ciphertext_len];
+  unsigned char* plaintext_test = new unsigned char[ciphertext_len];
   bzero(plaintext,ciphertext_len);
+  bzero(plaintext_test,ciphertext_len);
 
   /* Create and initialise the context */
-  if(!(ctx = EVP_CIPHER_CTX_new())) handleOpenSSLErrors();
+  if(!(ctx = EVP_CIPHER_CTX_new())) {
+    cout << "FAIL: DECRYPT: Location 1, Initializing context\n";
+    handleOpenSSLErrors();
+  }
 
 
   /* Initialise the decryption operation. IMPORTANT - ensure you use a key
@@ -416,21 +422,34 @@ string FileReaderWriter::decrypt(unsigned char *ciphertext, int ciphertext_len, 
    * In this example we are using 256 bit AES (i.e. a 256 bit key). The
    * IV size for *most* modes is the same as the block size. For AES this
    * is 128 bits */
-  if(1 != EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv))
+  if(1 != EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv)) {
+    cout << "FAIL: DECRYPT: Location 2, Initialize decryption operation\n";
     handleOpenSSLErrors();
+  }
 
  /* Provide the message to be decrypted, and obtain the plaintext output.
    * EVP_DecryptUpdate can be called multiple times if necessary
    */
-  if(1 != EVP_DecryptUpdate(ctx, plaintext, &len, ciphertext, ciphertext_len))
+  if(1 != EVP_DecryptUpdate(ctx, plaintext, &len, ciphertext, ciphertext_len)) {
+    cout << "FAIL: DECRYPT: Location 3, Provide the cipher to be decrypted and obtain plaintext output\n";
     handleOpenSSLErrors();
+  }
 
+  memcpy(plaintext_test, plaintext, sizeof(plaintext));
   plaintext_len = len;
 
   /* Finalise the decryption. Further plaintext bytes may be written at
    * this stage.
    */
-  if(1 != EVP_DecryptFinal_ex(ctx, plaintext + len, &len)) handleOpenSSLErrors();
+  if(1 != EVP_DecryptFinal_ex(ctx, plaintext + len, &len)) {
+    cout << "FAIL: DECRYPT: Location 4, Finalize the decryption\n";
+    cout << "INFO: plaintext: " << plaintext << endl;
+    cout << "INFO: plaintext_test: " << plaintext_test << endl;
+    cout << "INFO: cipher: " << ciphertext << endl;
+    cout << "INFO: plaintext len: " << plaintext_len + len << endl;
+    cout << "INFO: key: " << key << endl;
+    handleOpenSSLErrors();
+  }
   plaintext_len += len;
 
 
@@ -503,6 +522,7 @@ void FileReaderWriter::base64Decode(char* b64message, unsigned char** buffer, si
 int FileReaderWriter::encrypt(unsigned char *plaintext, int plaintext_len, unsigned char *key,
             unsigned char *iv, unsigned char *ciphertext)
 {
+    cout << "TEST: Encrypt key : " << key << endl;
     EVP_CIPHER_CTX *ctx;
 
     int len;
@@ -547,6 +567,8 @@ int FileReaderWriter::encrypt(unsigned char *plaintext, int plaintext_len, unsig
     ciphertext[ciphertext_len] = 0;
     /* Clean up */
     EVP_CIPHER_CTX_free(ctx);
+
+    cout << "TEST: Encrypt cipher : " << ciphertext << endl;
 
     return ciphertext_len;
 }
