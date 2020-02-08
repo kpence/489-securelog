@@ -372,7 +372,7 @@ int FileReaderWriter::load_file(string fname) {
 string FileReaderWriter::decrypt_next_chunk() {
   if (read_chunk() == 0)
     return "";
-  cout << "Finished reading chunk : " << s_cipher_base64 <<"\n";
+  cout << "===Finished reading chunk : " << s_cipher_base64 <<"\n";
   return decrypt_chunk();
 }
 
@@ -457,6 +457,8 @@ string FileReaderWriter::decrypt(unsigned char *ciphertext, int ciphertext_len, 
     handleOpenSSLErrors();
   }
 
+  cout<<"DEC: Key ";p_hex(key,32);cout<<endl;
+
   /* Initialise the decryption operation. IMPORTANT - ensure you use a key
    * and IV size appropriate for your cipher
    * In this example we are using 256 bit AES (i.e. a 256 bit key). The
@@ -471,7 +473,7 @@ string FileReaderWriter::decrypt(unsigned char *ciphertext, int ciphertext_len, 
   //printf("Dec: Key length: %d\n\n",(int)EVP_CIPHER_key_length(EVP_aes_256_cbc()) );
   //printf("Dec: Key length: %d\n\n",(int)EVP_CIPHER_CTX_key_length(ctx) );
 
- /* Provide the message to be decrypted, and obtain the plaintext output.
+  /* Provide the message to be decrypted, and obtain the plaintext output.
    * EVP_DecryptUpdate can be called multiple times if necessary
    */
   if(1 != EVP_DecryptUpdate(ctx, plaintext, &len, ciphertext, ciphertext_len)) {
@@ -583,6 +585,8 @@ int FileReaderWriter::encrypt(unsigned char *plaintext, int plaintext_len, unsig
       handleOpenSSLErrors();
 
     EVP_CIPHER_CTX_set_padding(ctx, 0);
+
+    cout<<"DEC: Key ";p_hex(key,32);cout<<endl;
 
     /*
      * Initialise the encryption operation. IMPORTANT - ensure you use a key
