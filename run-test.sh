@@ -10,17 +10,17 @@ echo "creating tables"
 
 rm ./output.txt
 
-echo "Write 1"
+echo "[[[ Write 1  <<<<<<<< ]]]"
 ./test -w 1-ADSamuel-
-echo "Read 1"
+echo "[[[ Read 1  >>>>>>>> ]]]"
 ./test -r 999
-echo "Write 2"
+echo "[[[ Write 2  <<<<<<<< ]]]"
 ./test -w 2-ADCharles-
-echo "Read 2"
+echo "[[[ Read 2  >>>>>>>> ]]]"
 ./test -r 999
-echo "Write 3"
+echo "[[[ Write 3  <<<<<<<< ]]]"
 ./test -w 3-ADSamuel-R1-
-echo "Read 3"
+echo "[[[ Read 3  >>>>>>>> ]]]"
 ./test -r 999
 #./test -w 4-ANKyle-
 #./test -r 999
