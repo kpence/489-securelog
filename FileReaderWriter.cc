@@ -21,6 +21,13 @@
 #include "FileReaderWriter.h"
 
 using namespace std;
+using ErrorType::UNKNOWN_ERROR;
+using ErrorType::INVALID_INPUT;
+using ErrorType::INTEGRITY_VIOLATION;
+using ErrorType::INVALID_FILE_PATH;
+using ErrorType::SUCCESS_NEW_FILE;
+using ErrorType::SUCCESS_FILE_EXISTS;
+using ErrorType::SUCCESS;
 
 #define KEY_LENGTH 32
 #define IV_LENGTH 32
@@ -30,6 +37,18 @@ using namespace std;
 #define CHUNK_SIZE 64
 #define VERIFICATION_CHUNK_STR "!12345abcPzJkqV!"
 
+int handleError(ErrorType errno) {
+  switch (errno) {
+    case INVALID_INPUT:
+      cerr<<"Invalid Input\n";break;
+    case INTEGRITY_VIOLATION:
+      cerr<<"Integrity violation\n";break;
+    case UNKNOWN_ERROR:
+      cerr<<"Unknown Error\n";break;
+    default: // warning, accepts SUCCESS*
+      cerr << "Unknown Error\n";
+  }
+}
 
 // TODO remove
 void p_hex(unsigned char* s, size_t sz) {
@@ -49,7 +68,93 @@ int FileReaderWriter::init() {
   return SUCCESS;
 }
 
+
 // Writing
+
+
+/* Instructions
+ *  Before we end a record, we insert @s until the end of a byte
+
+ * IMPORTANT This is a public method so we will return whether there was an integrity violation or other kind of error here in the return value.
+ */
+int FileReaderWriter::append_record(string rcd)
+{
+  if (rcd.find_first_not_of("01234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-") != string::npos) {
+    cerr << "FAIL: Append record: Improper record string \n";
+    return INVALID_INPUT;
+  }
+
+  if (rcd.length() >= RECORD_MAX_SIZE) {
+    cerr << "FAIL: Append record: Record too large\n";
+    return INVALID_INPUT;
+  }
+  // TODO (uncomment when done testing ) First verify the record
+  record_string = "^"+rcd;
+  //if (1 != validate_record())
+    //return ret;
+
+
+  // Append the record with the appropriate number of @ padding signs
+  // Example, say decyphered chunk length is 4
+  //^123456$
+  //^12345@$
+  //^1234567@@@$
+  //
+  // V probably a better way to do this.... but w/e
+  int modulo = (rcd.length()+2) % DECRYPTED_CHUNK_SIZE;
+  int padAts = (DECRYPTED_CHUNK_SIZE - modulo) % DECRYPTED_CHUNK_SIZE;
+
+  // Get number of chunks to append
+  int num = (rcd.length()+2) / DECRYPTED_CHUNK_SIZE;
+  if (modulo != 0) ++num;
+
+  record_string += string(padAts,'@') + "$";
+
+  // Make the command has acceptable form and has the token at the start of it.
+  // Note: This doesn't check if it has correct parsable form, delegating that to logappend and logread.
+  if (validate_record(record_string) == 0) {
+    cerr << "FAILURE: Failed to validate record: " << record_string << "\n";
+    return INVALID_INPUT;
+  }
+
+  // For each of these (if last one, then add the @ padding), encrypt it, and append it to the file,
+  int i, status;
+  string send = "^";
+  if (num == 1) {
+    send += rcd;
+    if (padAts > 0)
+      send += string(padAts,'@');
+    send += "$";
+    status = append_and_encrypt_chunk(send);
+    if (status != SUCCESS) return status;
+  }
+  else {
+    send += rcd.substr(0,DECRYPTED_CHUNK_SIZE-1);
+    rcd.erase(0,DECRYPTED_CHUNK_SIZE-1);
+
+    status = append_and_encrypt_chunk(send); // TODO check the status for each of these append chunks, or just throw an exception
+    if (status != SUCCESS) return status;
+
+    for (i = 1; i < num; i++) {
+      if (i == num-1) {
+        send = rcd;
+        rcd.erase(0,DECRYPTED_CHUNK_SIZE-1-padAts);
+        if (padAts > 0)
+          send += string(padAts,'@');
+        send += "$";
+      }
+      else {
+        send = rcd.substr(0,DECRYPTED_CHUNK_SIZE);
+        rcd.erase(0,DECRYPTED_CHUNK_SIZE);
+      }
+      status = append_and_encrypt_chunk(send); // TODO check the status for each of these append chunks, or just throw an exception
+      if (status != SUCCESS) return status;
+    }
+  }
+
+  return SUCCESS;
+}
+
 /* STEPS:
  * 1. Create the key-stretched key using the authentication token and a randomly generated SALT (Use random SALT and this.initAES method)
  * 2. Perform the AES encryption using the generated key
@@ -135,87 +240,7 @@ int FileReaderWriter::append_and_encrypt_chunk(string chunk) {
   return SUCCESS;
 }
 
-/* Instructions
- *  Before we end a record, we insert @s until the end of a byte
-
- * IMPORTANT This is a public method so we will return whether there was an integrity violation or other kind of error here in the return value.
- */
-int FileReaderWriter::append_record(string rcd)
-{
-  if (rcd.find_first_not_of("01234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-") != string::npos) {
-    cerr << "FAIL: Append record: Improper record string \n";
-    return INVALID_INPUT;
-  }
-
-  if (rcd.length() >= RECORD_MAX_SIZE) {
-    cerr << "FAIL: Append record: Record too large\n";
-    return INVALID_INPUT;
-  }
-  // TODO (uncomment when done testing ) First verify the record
-  record_string = "^"+rcd;
-  //if (1 != validate_record())
-    //return ret;
-
-
-  // Append the record with the appropriate number of @ padding signs
-  // Example, say decyphered chunk length is 4
-  //^123456$
-  //^12345@$
-  //^1234567@@@$
-  //
-  // V probably a better way to do this.... but w/e
-  int modulo = (rcd.length()+2) % DECRYPTED_CHUNK_SIZE;
-  int padAts = (DECRYPTED_CHUNK_SIZE - modulo) % DECRYPTED_CHUNK_SIZE;
-
-  // Get number of chunks to append
-  int num = (rcd.length()+2) / DECRYPTED_CHUNK_SIZE;
-  if (modulo != 0) ++num;
-
-  record_string += string(padAts,'@') + "$";
-
-  if (validate_record(record_string) == 0) {
-    cerr << "FAILURE: Failed to validate record: " << record_string << "\n";
-    return INVALID_INPUT;
-  }
-
-  // For each of these (if last one, then add the @ padding), encrypt it, and append it to the file,
-  int i, status;
-  string send = "^";
-  if (num == 1) {
-    send += rcd;
-    if (padAts > 0)
-      send += string(padAts,'@');
-    send += "$";
-    status = append_and_encrypt_chunk(send);
-    if (status != SUCCESS) return status;
-  }
-  else {
-    send += rcd.substr(0,DECRYPTED_CHUNK_SIZE-1);
-    rcd.erase(0,DECRYPTED_CHUNK_SIZE-1);
-
-    status = append_and_encrypt_chunk(send); // TODO check the status for each of these append chunks, or just throw an exception
-    if (status != SUCCESS) return status;
-
-    for (i = 1; i < num; i++) {
-      if (i == num-1) {
-        send = rcd;
-        rcd.erase(0,DECRYPTED_CHUNK_SIZE-1-padAts);
-        if (padAts > 0)
-          send += string(padAts,'@');
-        send += "$";
-      }
-      else {
-        send = rcd.substr(0,DECRYPTED_CHUNK_SIZE);
-        rcd.erase(0,DECRYPTED_CHUNK_SIZE);
-      }
-      status = append_and_encrypt_chunk(send); // TODO check the status for each of these append chunks, or just throw an exception
-      if (status != SUCCESS) return status;
-    }
-  }
-
-  return SUCCESS;
-}
-
+// Returns 0 if integrity violation
 int FileReaderWriter::parse_record() {
   // Read new chunks until you reach a $
   string s = decrypt_next_chunk();
@@ -227,9 +252,7 @@ int FileReaderWriter::parse_record() {
   //cout << "decrypting: " << s << endl;
 
 
-  // TODO verify the record is correctly formed during parsing
-
-
+  // Read new chunks until record finishes
   while (s[DECRYPTED_CHUNK_SIZE-1] != '$') {
     record_string += s;
     s = decrypt_next_chunk();
@@ -249,7 +272,7 @@ string FileReaderWriter::get_next_record_string() {
   string s;
   if (parse_record() != 0)
     s = get_record_string();
-  return s;
+  return s; // Empty if integrity violation
 }
 
 string FileReaderWriter::get_record_string() {

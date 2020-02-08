@@ -16,12 +16,13 @@ enum ErrorType {
 	SUCCESS
 };
 
+int handleError(ErrorType errno);
 
 class FileReaderWriter {
   public:
     FileReaderWriter(const string fname,
                      const string _s_key)
-      : filename(fname), s_key(_s_key), ctx(NULL), key_verify_status(UNKNOWN_ERROR)
+      : filename(fname), s_key(_s_key), ctx(NULL)
     {}
 
 
@@ -29,14 +30,10 @@ class FileReaderWriter {
 		// (Returns Error Type)
 		int init();
 
-    // Reading
+    // Reading/Parsing
     string decrypt_next_chunk();
-    string decrypt_chunk(); // TODO every chunk, check if the chunk sig prefix is present
-
-    // Command Parsing from Chunks
-    int parse_record(); //records start with ^ and end with {@}$
-    string get_record_string();
-    string get_next_record_string();
+    string get_next_record_string(); // (Empty if INTEGRITY VIOLATION) Reads the next record string in the file.
+    string get_last_record_string(); // Reads the latest record string in the file
 
     // Writing
 
@@ -56,6 +53,11 @@ class FileReaderWriter {
      *  Before we end a record, we insert @s until the end of a byte
      */
     int append_and_encrypt_chunk(string s);
+
+    // Reading/Parsing
+    string decrypt_chunk();
+    string get_record_string();
+    int parse_record(); //records start with ^ and end with {@}$
 
     // I/O
     /*

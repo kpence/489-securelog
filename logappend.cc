@@ -22,9 +22,10 @@ int main(int argc, char** argv) {
           t = stoi(string(optarg));
           for (int i = 0; i < t; i++) {
             string s = frw.get_next_record_string();
-            //this_thread::sleep_for(chrono::seconds(1));
-            if (s.empty())
+            if (s.empty()) {
+              handleError(ErrorType::INTEGRITY_VIOLATION);
               break;
+            }
             cout << "> " << s << endl;
           }
           break;
