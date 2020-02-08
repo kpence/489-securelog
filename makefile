@@ -5,16 +5,19 @@ CPPFLAGS += `pkg-config --cflags openssl` -g
 CXXFLAGS += -std=c++11 -g
 LDFLAGS += -L /usr/local/lib `pkg-config --libs openssl` -g
 
-all: test
+all: logread logappend
 
 %.o : %.cc
 	$(CXX) $^ -o $@ -c $(CPPFLAGS)
 
-test: test.o
+logappend: logappend.o FileReaderWriter.o
+	$(CXX) $^ -o $@ $(LDFLAGS)
+
+logread: logread.o FileReaderWriter.o
 	$(CXX) $^ -o $@ $(LDFLAGS)
 
 
 
 clean:
-	rm -f *.o test
+	rm -f *.o logread logappend
 

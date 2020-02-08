@@ -17,14 +17,19 @@
 #include <random>
 #include <functional>
 #include <algorithm>
+
+#include "FileReaderWriter.h"
+
 using namespace std;
 
-#define MAX_KEY_LENGTH 32
-#define MAX_IV_LENGTH 32
+#define KEY_LENGTH 32
+#define IV_LENGTH 32
 #define RECORD_MAX_SIZE 16*3 - 2
 #define DECRYPTED_CHUNK_SIZE 16
+#define DECODED_CHUNK_SIZE 32
 #define CHUNK_SIZE 64
-#define VERIFY_CHUNK_STR "THE KEY IS GREAT"
+#define VERIFICATION_CHUNK_STR "!12345abcPzJkqV!"
+
 
 // TODO remove
 void p_hex(unsigned char* s, size_t sz) {
@@ -33,68 +38,16 @@ void p_hex(unsigned char* s, size_t sz) {
   }
 }
 
-class FileReaderWriter {
-  public:
-    FileReaderWriter(const string fname,
-                     const string _s_key)
-      : filename(fname), s_key(_s_key), ctx(NULL), key_verified(0)
-    {
-      if (load_file(fname) == 1) {
-        key_verified = verify_key();
-        //cout << "DEV OUTPUT: Key is verified. \n";
-      }
-    }
 
-    // Reading
-    string decrypt_next_chunk();
-    string decrypt_chunk(); // TODO every chunk, check if the chunk sig prefix is present
-
-    // Command Parsing from Chunks
-    int parse_record(); //records start with ^ and end with {@}$
-    string get_record_string();
-    string get_next_record_string();
-
-    // Writing
-    int append_record(string rcd); //records start with ^ and end with {@}$
-  protected:
-  private:
-    // Writing
-    /* Instructions
-     *  Before we end a record, we insert @s until the end of a byte
-     */
-    int append_and_encrypt_chunk(string s);
-
-    // I/O
-    int load_file(string fname);
-    int read_chunk();
-
-    // Verifying
-    void check_corruption(string key); // TODO Check for corruption, for now assume
-    int validate_record(string rcd); // TODO checks if record_string has correct token attached
-    int verify_key();
-
-
-    // Decryption functions (SSL)
-    void base64Decode(char* b64message, unsigned char** buffer, size_t* length);
-    void base64Encode(const unsigned char* buffer, size_t length, char** base64Text);
-    size_t calcDecodeLength(char* b64input);
-    string decrypt(unsigned char *ciphertext, int ciphertext_len, unsigned char *key, unsigned char *iv);
-    int encrypt(unsigned char *plaintext, int plaintext_len, unsigned char *key, unsigned char *iv, unsigned char *ciphertext);
-    int initAES(const string& pass, unsigned char* salt, unsigned char* key, unsigned char* iv);
-    void handleOpenSSLErrors(void);
-    EVP_CIPHER_CTX *ctx;
-
-    string s_cipher_base64;
-    string filename;
-    string s_key;
-    ifstream ifs;
-    ofstream wfs; // write to file
-    int key_verified;
-
-    // Parsing recrod members
-    string record_string;
-};
-
+int FileReaderWriter::init() {
+  int f = load_file(filename);
+  if (f == SUCCESS_FILE_EXISTS) {
+    key_verify_status = verify_key();
+    if (key_verify_status == 0)
+      return INTEGRITY_VIOLATION;
+  }
+  return SUCCESS;
+}
 
 // Writing
 /* STEPS:
@@ -113,12 +66,11 @@ int FileReaderWriter::append_and_encrypt_chunk(string chunk) {
   char* ciphertext_base64;
   unsigned char ciphertext[128];
   unsigned char *prepend_ciphertext;
-  unsigned char salt_save[8];
   unsigned char salt[8];
   ERR_load_crypto_strings();
 
-  unsigned char key[MAX_KEY_LENGTH];
-  unsigned char iv[MAX_IV_LENGTH];
+  unsigned char key[KEY_LENGTH];
+  unsigned char iv[IV_LENGTH];
 
   // Step one (Part A) Generate random size 8 unsigned char* SALT
   memset(salt,'\0',8);
@@ -130,19 +82,27 @@ int FileReaderWriter::append_and_encrypt_chunk(string chunk) {
   for (i = 0; i < 8; i++)
     salt[i]=rand();
 
-  memcpy(salt_save, salt,8);
-
   // Step one (Part B) Create the key-stretched key
   int key_size = initAES(s_key.c_str(), salt, key, iv);
 
-  if (strncmp((char*)salt_save, (char*)salt, 8)!=0) {
-    cout << "FAIL: Mysterious issue! The salt has changed during the key stretching process\n";
-    return 0;
+  if (key_size != KEY_LENGTH) {
+    // ~~~~~~~~~~~ERROR Key stretching failed somehow!~~~~~~~~~~~";
+
+    // INTEGRITY VIOLATION
+    ERR_free_strings();
+    return INTEGRITY_VIOLATION;
   }
 
   // Step two Perform the AES encryption
   cipher_len = encrypt((unsigned char*)chunk.c_str(), DECRYPTED_CHUNK_SIZE, key, iv, ciphertext);
-  //printf("ENC: CPR "); p_hex(ciphertext, cipher_len); cout <<endl;
+
+  if (cipher_len != DECODED_CHUNK_SIZE) {
+    // ~~~~~~~~~~~ERROR Key stretching failed somehow!~~~~~~~~~~~";
+
+    // INTEGRITY VIOLATION
+    ERR_free_strings();
+    return INTEGRITY_VIOLATION;
+  }
 
   // Step three Prepend the cypher with the SALT
   prepend_ciphertext = (unsigned char*)malloc(cipher_len+16);
@@ -159,30 +119,37 @@ int FileReaderWriter::append_and_encrypt_chunk(string chunk) {
   //free(cipher_alloced_mem);
 
   // Clean up
-  EVP_cleanup();
   ERR_free_strings();
 
   // Step five append file with it
+  // TODO do we expect the file to exist at this point?
   ofstream _wfs;
   _wfs.open(filename, ios_base::app);
-  _wfs << string((char*)ciphertext_base64, CHUNK_SIZE);
+  if (_wfs.is_open())
+    _wfs << string((char*)ciphertext_base64, CHUNK_SIZE);
+  else {
+    cerr << "FAILURE: Writing to invalid file\n";
+    return INVALID_FILE_PATH;
+  }
   //cout << "CHUNK MADE: " << string((char*)ciphertext_base64, CHUNK_SIZE) << endl;
-  return 1;
+  return SUCCESS;
 }
 
 /* Instructions
  *  Before we end a record, we insert @s until the end of a byte
+
+ * IMPORTANT This is a public method so we will return whether there was an integrity violation or other kind of error here in the return value.
  */
 int FileReaderWriter::append_record(string rcd)
 {
   if (rcd.find_first_not_of("01234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-") != string::npos) {
-    cout << "FAIL: Append record: Improper record string \n";
-    return 0;
+    cerr << "FAIL: Append record: Improper record string \n";
+    return INVALID_INPUT;
   }
 
   if (rcd.length() >= RECORD_MAX_SIZE) {
-    cout << "FAIL: Append record: Record too large\n";
-    return 0;
+    cerr << "FAIL: Append record: Record too large\n";
+    return INVALID_INPUT;
   }
   // TODO (uncomment when done testing ) First verify the record
   record_string = "^"+rcd;
@@ -207,24 +174,28 @@ int FileReaderWriter::append_record(string rcd)
   record_string += string(padAts,'@') + "$";
 
   if (validate_record(record_string) == 0) {
-    cout << "failed to validate record: " << record_string << "\n";
-    return 0;
+    cerr << "FAILURE: Failed to validate record: " << record_string << "\n";
+    return INVALID_INPUT;
   }
 
   // For each of these (if last one, then add the @ padding), encrypt it, and append it to the file,
-  int i;
+  int i, status;
   string send = "^";
   if (num == 1) {
     send += rcd;
     if (padAts > 0)
       send += string(padAts,'@');
     send += "$";
-    append_and_encrypt_chunk(send);
+    status = append_and_encrypt_chunk(send);
+    if (status != SUCCESS) return status;
   }
   else {
     send += rcd.substr(0,DECRYPTED_CHUNK_SIZE-1);
     rcd.erase(0,DECRYPTED_CHUNK_SIZE-1);
-    append_and_encrypt_chunk(send); // TODO check the status for each of these append chunks, or just throw an exception
+
+    status = append_and_encrypt_chunk(send); // TODO check the status for each of these append chunks, or just throw an exception
+    if (status != SUCCESS) return status;
+
     for (i = 1; i < num; i++) {
       if (i == num-1) {
         send = rcd;
@@ -237,11 +208,12 @@ int FileReaderWriter::append_record(string rcd)
         send = rcd.substr(0,DECRYPTED_CHUNK_SIZE);
         rcd.erase(0,DECRYPTED_CHUNK_SIZE);
       }
-      append_and_encrypt_chunk(send);
+      status = append_and_encrypt_chunk(send); // TODO check the status for each of these append chunks, or just throw an exception
+      if (status != SUCCESS) return status;
     }
   }
 
-  return 1;
+  return SUCCESS;
 }
 
 int FileReaderWriter::parse_record() {
@@ -318,6 +290,7 @@ int FileReaderWriter::validate_record(string rcd) {
   return 1;
 }
 
+// Returns 0 if integrity violation
 int FileReaderWriter::verify_key() {
   if (read_chunk() == 0)
     return 0;
@@ -325,10 +298,19 @@ int FileReaderWriter::verify_key() {
   // Now decrypt the signature chunk
   string s = decrypt_chunk();
 
+  // If empty, then there's an 
+  if (s.empty()) {
+    // ~~~~~~~~~~~ERROR Failure to decrypt!~~~~~~~~~~~";
+
+    // INTEGRITY VIOLATION
+		return 0;
+  }
+
   // Check if signature is valid
-  if (0 != strncmp((char*)s.c_str(),(char*)VERIFY_CHUNK_STR,(size_t)DECRYPTED_CHUNK_SIZE)) {
-    // Failure, bad file
-    cout << "FAILURE: Failed to verify signature, returning -1 and mkae sure to exit with 255 and output Integrity violation\n";
+  if (0 != strncmp((char*)s.c_str(),(char*)VERIFICATION_CHUNK_STR,(size_t)DECRYPTED_CHUNK_SIZE)) {
+    // ~~~~~~~~~~~ERROR Failure to verify the file signature!~~~~~~~~~~~";
+
+    // INTEGRITY VIOLATION
     return 0;
   }
   
@@ -344,26 +326,45 @@ int FileReaderWriter::read_chunk() {
   s_cipher_base64 = string(buffer, CHUNK_SIZE);
   return 1;
 }
+
+// Returns ErrorType
 int FileReaderWriter::load_file(string fname) {
+
+  // Test if valid writable file
+  ofstream _wfs;
+  _wfs.open(filename, ios_base::app);
+  if (!_wfs.is_open()) {
+    cerr << "FAILURE: Invalid file path.\n";
+    return INVALID_FILE_PATH;
+  }
+
+  // Test if file is empty and whether to write the signature to it
   ifs = ifstream(fname);
   if (ifs.peek() == EOF) {
-    append_and_encrypt_chunk("THE KEY IS GREAT");
-    return 0;
+    append_and_encrypt_chunk(VERIFICATION_CHUNK_STR);
+    return SUCCESS_NEW_FILE;
   }
-  return 1;
+  return SUCCESS_FILE_EXISTS;
 }
 
 string FileReaderWriter::decrypt_next_chunk() {
   if (read_chunk() == 0)
     return "";
   //cout << "===Finished reading chunk : " << s_cipher_base64 <<"\n";
-  return decrypt_chunk();
+  string s = decrypt_chunk();
+
+  // TODO remember: if empty it's an integrity violation
+  return s;
 }
 
+/* The following method waas originally copied from and modified from this website:
+ *
+ * https://eclipsesource.com/blogs/2017/01/17/tutorial-aes-encryption-and-decryption-with-openssl/
+ *
+ */
 string FileReaderWriter::decrypt_chunk() {
-  // encrypted using aes-256-cbc with the
+  // encrypted using aes-256-cbc
   s_cipher_base64.push_back('\n');
-  //cout << s_cipher_base64;
   char* ciphertext_base64 = (char*) s_cipher_base64.c_str();
   int decryptedtext_len, ciphertext_len;
   size_t cipher_len;
@@ -372,10 +373,19 @@ string FileReaderWriter::decrypt_chunk() {
   ERR_load_crypto_strings();
   base64Decode(ciphertext_base64, &ciphertext, &cipher_len);
 
-  unsigned char key[MAX_KEY_LENGTH];
-  unsigned char iv[MAX_IV_LENGTH];
+  if (cipher_len <= 0) {
+    // ~~~~~~~~~~~ERROR Cipher file is empty, expected bytes!~~~~~~~~~~~";
 
-  //cout << "DEC: prepended_ciphertext ";p_hex(ciphertext,cipher_len);cout<<endl;
+    // INTEGRITY VIOLATION
+
+    // Free everything before returning empty
+    free(ciphertext);
+    return "";
+  }
+
+  unsigned char key[KEY_LENGTH];
+  unsigned char iv[IV_LENGTH];
+
   if (strncmp((const char*)ciphertext,"Salted__",8) == 0) {
     memcpy(salt,&ciphertext[8],8);
     cipher_alloced_mem = ciphertext;
@@ -383,25 +393,51 @@ string FileReaderWriter::decrypt_chunk() {
     cipher_len -= 16;
   }
   else {
-    cout<<"\n\n~~~~~~~~~~~ERROR Salted not found!~~~~~~~~~~~\n\n";
+    // ~~~~~~~~~~~ERROR Salted not found!~~~~~~~~~~~";
+
+    // INTEGRITY VIOLATION
+
+    // Free everything before returning empty
+    free(ciphertext);
+    ERR_free_strings();
+    return "";
   }
   int key_size = initAES(s_key.c_str(), salt, key, iv);
 
-  string result = decrypt(ciphertext, cipher_len, key, iv);
+  if (key_size != KEY_LENGTH) {
+    // ~~~~~~~~~~~ERROR Key stretching failed somehow!~~~~~~~~~~~";
 
-  free(cipher_alloced_mem);
+    // INTEGRITY VIOLATION
+
+    // Free everything before returning empty
+    free(cipher_alloced_mem);
+    ERR_free_strings();
+    return "";
+  }
+  string plaintext = decrypt(ciphertext, cipher_len, key, iv);
+
+  if (plaintext.empty()) {
+    // ~~~~~~~~~~~ERROR Decrypt returns empty string if error!~~~~~~~~~~~";
+
+    // INTEGRITY VIOLATION
+
+    // Free everything before returning empty
+    free(cipher_alloced_mem);
+    ERR_free_strings();
+    return "";
+  }
 
   // Clean up
-  EVP_cleanup();
+  free(cipher_alloced_mem);
   ERR_free_strings();
 
-  return result;
+  return plaintext;
 }
 
 void FileReaderWriter::handleOpenSSLErrors(void)
 {
-  ERR_print_errors_fp(stderr);
-  abort();
+  //ERR_print_errors_fp(stderr);
+  //abort();
 }
 
 /* The following method waas originally copied from this website:
@@ -412,25 +448,31 @@ void FileReaderWriter::handleOpenSSLErrors(void)
 string FileReaderWriter::decrypt(unsigned char *ciphertext, int ciphertext_len, unsigned char *key,
   unsigned char *iv ) {
 
-  unsigned char *plaintexts;
   int len;
   int plaintext_len;
   unsigned char* plaintext = new unsigned char[ciphertext_len];
-  unsigned char* plaintext_test = new unsigned char[ciphertext_len];
   bzero(plaintext,ciphertext_len);
-  bzero(plaintext_test,ciphertext_len);
 
   /* Create and initialise the context */
   if(!(ctx = EVP_CIPHER_CTX_new())) {
-    cout << "\n-------------------\nFAIL: DECRYPT: Location 1, Initializing context\n";
+    // ~~~~~~~~~~~ERROR Failure to decrypt!~~~~~~~~~~~";
+
+    // INTEGRITY VIOLATION
     handleOpenSSLErrors();
+    delete [] plaintext;
+    return "";
   }
   EVP_CIPHER_CTX_set_padding(ctx, 0);
 
   /* Don't set key or IV right away; we want to check lengths */
   if(1 != EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, NULL, NULL)) {
-    cout << "\n-------------------\nFAIL: DECRYPT: Location 1.5, Finding key length\n";
+    // ~~~~~~~~~~~ERROR Failure to decrypt!~~~~~~~~~~~";
+
+    // INTEGRITY VIOLATION
     handleOpenSSLErrors();
+    EVP_CIPHER_CTX_free(ctx);
+    delete [] plaintext;
+    return "";
   }
 
   /* Initialise the decryption operation. IMPORTANT - ensure you use a key
@@ -439,36 +481,40 @@ string FileReaderWriter::decrypt(unsigned char *ciphertext, int ciphertext_len, 
    * IV size for *most* modes is the same as the block size. For AES this
    * is 128 bits */
   if(1 != EVP_DecryptInit_ex(ctx, NULL, NULL, key, iv)) {
-    cout << "\n-------------------\nFAIL: DECRYPT: Location 2, Initialize decryption operation\n";
+    // ~~~~~~~~~~~ERROR Failure to decrypt!~~~~~~~~~~~";
+
+    // INTEGRITY VIOLATION
     handleOpenSSLErrors();
+    EVP_CIPHER_CTX_free(ctx);
+    delete [] plaintext;
+    return "";
   }
 
   /* Provide the message to be decrypted, and obtain the plaintext output.
    * EVP_DecryptUpdate can be called multiple times if necessary
    */
   if(1 != EVP_DecryptUpdate(ctx, plaintext, &len, ciphertext, ciphertext_len)) {
-    cout << "\n-------------------\nFAIL: DECRYPT: Location 3, Provide the cipher to be decrypted and obtain plaintext output\n";
+    // ~~~~~~~~~~~ERROR Failure to decrypt!~~~~~~~~~~~";
+
+    // INTEGRITY VIOLATION
     handleOpenSSLErrors();
+    delete [] plaintext;
+    return "";
   }
 
-  /*
-  cout << "Dec: CPR ";p_hex(ciphertext,ciphertext_len); cout<<endl;
-  cout << "LEN: PLT " << len<<endl;
-  cout << "Dec: PLT  " << plaintext << endl;
-  cout << "B64: PLT ";p_hex(plaintext,len);cout<<endl;
-  cout << "Dec: KEY  "; p_hex(key,32); cout << " -- size: " << sizeof(key) <<endl;
-  cout << "Dec: IV   "; p_hex(iv,32 ); cout << " -- size: " << sizeof(iv) <<endl;
-  */
-
-  //memcpy(plaintext_test, plaintext, sizeof(plaintext));
   plaintext_len = len;
 
   /* Finalise the decryption. Further plaintext bytes may be written at
    * this stage.
    */
   if(1 != EVP_DecryptFinal_ex(ctx, plaintext + len, &len)) {
-    cout << "\n-------------------\nFAIL: DECRYPT: Location 4, Finalize the decryption\n";
+    // ~~~~~~~~~~~ERROR Failure to decrypt!~~~~~~~~~~~";
+
+    // INTEGRITY VIOLATION
     handleOpenSSLErrors();
+    EVP_CIPHER_CTX_free(ctx);
+    delete [] plaintext;
+    return "";
   }
   plaintext_len += len;
 
@@ -573,8 +619,12 @@ int FileReaderWriter::encrypt(unsigned char *plaintext, int plaintext_len, unsig
     int ciphertext_len;
 
     /* Create and initialise the context */
-    if(!(ctx = EVP_CIPHER_CTX_new()))
+    if(!(ctx = EVP_CIPHER_CTX_new())) {
       handleOpenSSLErrors();
+      // ~~~~~~~~~~~ERROR Failure to encrypt!~~~~~~~~~~~";
+      // INTEGRITY VIOLATION
+      return 0;
+    }
 
     EVP_CIPHER_CTX_set_padding(ctx, 0);
 
@@ -587,13 +637,18 @@ int FileReaderWriter::encrypt(unsigned char *plaintext, int plaintext_len, unsig
      * IV size for *most* modes is the same as the block size. For AES this
      * is 128 bits
      */
-    if(1 != EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv))
+    if(1 != EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv)) {
       handleOpenSSLErrors();
+      // ~~~~~~~~~~~ERROR Failure to encrypt!~~~~~~~~~~~";
+      // INTEGRITY VIOLATION
+      EVP_CIPHER_CTX_free(ctx);
+      return 0;
+    }
 
     //cout << "ENCRYPT: Key length " << EVP_CIPHER_CTX_key_length(ctx) << endl;
 
 
-    EVP_CIPHER_CTX_set_key_length(ctx, MAX_KEY_LENGTH);
+    EVP_CIPHER_CTX_set_key_length(ctx, KEY_LENGTH);
 
 
     /*
@@ -601,31 +656,41 @@ int FileReaderWriter::encrypt(unsigned char *plaintext, int plaintext_len, unsig
      * EVP_EncryptUpdate can be called multiple times if necessary
      */
 
-    if(1 != EVP_EncryptUpdate(ctx, ciphertext, &len, plaintext, plaintext_len))
+    if(1 != EVP_EncryptUpdate(ctx, ciphertext, &len, plaintext, plaintext_len)) {
       handleOpenSSLErrors();
+      // ~~~~~~~~~~~ERROR Failure to encrypt!~~~~~~~~~~~";
+      // INTEGRITY VIOLATION
+      EVP_CIPHER_CTX_free(ctx);
+      return 0;
+    }
     ciphertext_len = len;
 
     /*
      * Finalise the encryption. Further ciphertext bytes may be written at
      * this stage.
      */
-    if(1 != EVP_EncryptFinal_ex(ctx, ciphertext + len, &len))
+    if(1 != EVP_EncryptFinal_ex(ctx, ciphertext + len, &len)) {
       handleOpenSSLErrors();
+      // ~~~~~~~~~~~ERROR Failure to encrypt!~~~~~~~~~~~";
+      // INTEGRITY VIOLATION
+      EVP_CIPHER_CTX_free(ctx);
+      return 0;
+    }
     ciphertext_len += len;
 
     ciphertext[ciphertext_len] = 0;
     /* Clean up */
     EVP_CIPHER_CTX_free(ctx);
 
-    //cout << "TEST: Encrypt cipher : "; p_hex(ciphertext, ciphertext_len); cout << endl;
-
     return ciphertext_len;
 }
 
 
+/*
 int main(int argc, char** argv) {
   std::string key = "secret";
-  FileReaderWriter frw("./output.txt", key);
+  FileReaderWriter frw("testdir", key);
+  frw.init();
 
   int t;
   int opt = 0;
@@ -655,3 +720,4 @@ int main(int argc, char** argv) {
 
   return 0;
 }
+*/

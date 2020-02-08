@@ -1,3 +1,5 @@
 *.o
 *.txt
-test
+bin
+logappend
+logread
