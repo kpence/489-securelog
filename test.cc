@@ -107,6 +107,7 @@ class FileReaderWriter {
 int FileReaderWriter::append_and_encrypt_chunk(string chunk) {
   // Append to end of the file
   cout << "Appending chunk: " << chunk << endl;
+  cout << "B64E: PLT ";p_hex((unsigned char*)chunk.c_str(),DECRYPTED_CHUNK_SIZE);cout<<endl;
 
   size_t cipher_len;
 
@@ -428,14 +429,6 @@ void FileReaderWriter::handleOpenSSLErrors(void)
 string FileReaderWriter::decrypt(unsigned char *ciphertext, int ciphertext_len, unsigned char *key,
   unsigned char *iv ) {
 
-  /* Create and initialise the context - ONLY on first use in runtime */
-  if (ctx == NULL) {
-    if(!(ctx = EVP_CIPHER_CTX_new()))
-      handleOpenSSLErrors();
-
-    EVP_CIPHER_CTX_set_padding(ctx, 0);
-  }
-
   //printf("Dec: AT THE START: key:"); p_hex(key,sizeof(key)); cout << " -- size: " << sizeof(key) <<endl;
   unsigned char *plaintexts;
   int len;
@@ -458,21 +451,25 @@ string FileReaderWriter::decrypt(unsigned char *ciphertext, int ciphertext_len, 
   //printf("Dec: BEFORE INIT: key: "); p_hex(key,sizeof(key)); cout << " -- size: " << sizeof(key) <<endl;
   //cout << "Dec: Before INIT, plaintext : " << plaintext << endl;
 
+  /* Don't set key or IV right away; we want to check lengths */
+  if(1 != EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, NULL, NULL)) {
+    cout << "\n-------------------\nFAIL: DECRYPT: Location 1.5, Finding key length\n";
+    handleOpenSSLErrors();
+  }
+
   /* Initialise the decryption operation. IMPORTANT - ensure you use a key
    * and IV size appropriate for your cipher
    * In this example we are using 256 bit AES (i.e. a 256 bit key). The
    * IV size for *most* modes is the same as the block size. For AES this
    * is 128 bits */
-  if(1 != EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv)) {
+  cout << "DEC: Key len " << EVP_CIPHER_CTX_key_length(ctx) << endl;
+  if(1 != EVP_DecryptInit_ex(ctx, NULL, NULL, key, iv)) {
     cout << "\n-------------------\nFAIL: DECRYPT: Location 2, Initialize decryption operation\n";
     handleOpenSSLErrors();
   }
 
   //printf("Dec: Key length: %d\n\n",(int)EVP_CIPHER_key_length(EVP_aes_256_cbc()) );
   //printf("Dec: Key length: %d\n\n",(int)EVP_CIPHER_CTX_key_length(ctx) );
-
-  EVP_CIPHER_CTX_set_key_length(ctx, MAX_KEY_LENGTH);
-
 
  /* Provide the message to be decrypted, and obtain the plaintext output.
    * EVP_DecryptUpdate can be called multiple times if necessary
@@ -482,11 +479,13 @@ string FileReaderWriter::decrypt(unsigned char *ciphertext, int ciphertext_len, 
     handleOpenSSLErrors();
   }
 
+  cout << "LEN: PLT " << len<<endl;
   cout << "Dec: PLT  " << plaintext << endl;
+  cout << "B64: PLT ";p_hex(plaintext,len);cout<<endl;
   cout << "Dec: KEY  "; p_hex(key,32); cout << " -- size: " << sizeof(key) <<endl;
-  cout << "Dec: IV   "; p_hex(key,32 ); cout << " -- size: " << sizeof(iv) <<endl;
+  cout << "Dec: IV   "; p_hex(iv,32 ); cout << " -- size: " << sizeof(iv) <<endl;
 
-  memcpy(plaintext_test, plaintext, sizeof(plaintext));
+  //memcpy(plaintext_test, plaintext, sizeof(plaintext));
   plaintext_len = len;
 
   /* Finalise the decryption. Further plaintext bytes may be written at
@@ -495,6 +494,7 @@ string FileReaderWriter::decrypt(unsigned char *ciphertext, int ciphertext_len, 
   if(1 != EVP_DecryptFinal_ex(ctx, plaintext + len, &len)) {
     cout << "\n-------------------\nFAIL: DECRYPT: Location 4, Finalize the decryption\n";
     cout << "INFO: PLT " << plaintext << endl;
+    //cout << "B64E: PLT ";p_hex(plaintext,plaintext_len+len);cout<<endl;
     //cout << "INFO: plaintext_test: "; p_hex(plaintext_test, sizeof(plaintext_test)); cout << endl;
     cout << "INFO: CPR "; p_hex(ciphertext, sizeof(ciphertext)); cout << endl;
     cout << "INFO: P+L " << plaintext_len + len << endl;
@@ -593,6 +593,8 @@ int FileReaderWriter::encrypt(unsigned char *plaintext, int plaintext_len, unsig
      */
     if(1 != EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv))
       handleOpenSSLErrors();
+
+    cout << "ENCRYPT: Key length " << EVP_CIPHER_CTX_key_length(ctx) << endl;
 
 
     EVP_CIPHER_CTX_set_key_length(ctx, MAX_KEY_LENGTH);
