@@ -6,16 +6,6 @@
 
 using namespace std;
 
-enum ErrorType {
-	UNKNOWN_ERROR,
-	INVALID_INPUT,
-	INTEGRITY_VIOLATION,
-	INVALID_FILE_PATH, // Used by init and load_file
-	SUCCESS_NEW_FILE, // Used by init and load_file
-	SUCCESS_FILE_EXISTS, // Used by init and load_file
-	SUCCESS
-};
-
 class FileReaderWriter {
   public:
     FileReaderWriter(const string fname,
@@ -27,7 +17,6 @@ class FileReaderWriter {
 		// -- Must call this before use of FileReaderWriter
 		// (Returns Error Type)
 		int init();
-    int handleError(int errno);
 
     // Reading/Parsing
     string decrypt_next_chunk();

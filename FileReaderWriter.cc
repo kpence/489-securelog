@@ -19,6 +19,7 @@
 #include <algorithm>
 
 #include "FileReaderWriter.h"
+#include "errortype.h"
 
 using namespace std;
 using ErrorType::UNKNOWN_ERROR;
@@ -42,20 +43,6 @@ void p_hex(unsigned char* s, size_t sz) {
   for (int i = 0; i < sz; i++) {
     printf("%x", (char)s[i]);
   }
-}
-
-int FileReaderWriter::handleError(int errno) {
-  /*switch (errno) {
-    case INVALID_INPUT:
-      cerr<<"Invalid Input\n";break;
-    case INTEGRITY_VIOLATION:
-      cerr<<"Integrity violation\n";break;
-    case UNKNOWN_ERROR:
-      cerr<<"Unknown Error\n";break;
-    default: // warning, accepts SUCCESS*
-      cerr << "Unknown Error\n";
-  }*/
-  return 0;
 }
 
 int FileReaderWriter::init() {

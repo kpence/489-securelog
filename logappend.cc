@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "FileReaderWriter.h"
+#include "error.h"
 
 using namespace std;
 
@@ -25,7 +26,7 @@ int main(int argc, char** argv) {
             if (s.empty()) {
               //ErrorType e = ErrorType::INTEGRITY_VIOLATION;
               //handleError(ErrorType::INTEGRITY_VIOLATION);
-              frw.handleError(2);
+              handleError(2);
               break;
             }
             cout << "> " << s << endl;
