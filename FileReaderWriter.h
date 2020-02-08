@@ -16,8 +16,6 @@ enum ErrorType {
 	SUCCESS
 };
 
-int handleError(ErrorType errno);
-
 class FileReaderWriter {
   public:
     FileReaderWriter(const string fname,
@@ -29,6 +27,7 @@ class FileReaderWriter {
 		// -- Must call this before use of FileReaderWriter
 		// (Returns Error Type)
 		int init();
+    int handleError(int errno);
 
     // Reading/Parsing
     string decrypt_next_chunk();

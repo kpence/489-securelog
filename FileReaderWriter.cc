@@ -37,8 +37,15 @@ using ErrorType::SUCCESS;
 #define CHUNK_SIZE 64
 #define VERIFICATION_CHUNK_STR "!12345abcPzJkqV!"
 
-int handleError(ErrorType errno) {
-  switch (errno) {
+// TODO remove
+void p_hex(unsigned char* s, size_t sz) {
+  for (int i = 0; i < sz; i++) {
+    printf("%x", (char)s[i]);
+  }
+}
+
+int FileReaderWriter::handleError(int errno) {
+  /*switch (errno) {
     case INVALID_INPUT:
       cerr<<"Invalid Input\n";break;
     case INTEGRITY_VIOLATION:
@@ -47,16 +54,9 @@ int handleError(ErrorType errno) {
       cerr<<"Unknown Error\n";break;
     default: // warning, accepts SUCCESS*
       cerr << "Unknown Error\n";
-  }
+  }*/
+  return 0;
 }
-
-// TODO remove
-void p_hex(unsigned char* s, size_t sz) {
-  for (int i = 0; i < sz; i++) {
-    printf("%x", (char)s[i]);
-  }
-}
-
 
 int FileReaderWriter::init() {
   int f = load_file(filename);

@@ -23,7 +23,9 @@ int main(int argc, char** argv) {
           for (int i = 0; i < t; i++) {
             string s = frw.get_next_record_string();
             if (s.empty()) {
-              handleError(ErrorType::INTEGRITY_VIOLATION);
+              //ErrorType e = ErrorType::INTEGRITY_VIOLATION;
+              //handleError(ErrorType::INTEGRITY_VIOLATION);
+              frw.handleError(2);
               break;
             }
             cout << "> " << s << endl;
