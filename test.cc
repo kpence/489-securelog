@@ -17,6 +17,9 @@
 #include <random>
 #include <functional>
 #include <algorithm>
+
+#include "base64.h"
+
 using namespace std;
 
 #define MAX_KEY_LENGTH 32
@@ -170,6 +173,10 @@ int FileReaderWriter::append_and_encrypt_chunk(string chunk) {
 
   // Step four Encode in Base64
   base64Encode(prepend_ciphertext, cipher_len, &ciphertext_base64);
+
+  cout<<"ENCODED : ";p_hex(prepend_ciphertext,cipher_len);cout<<endl;
+  cout<<"First 8 of ENCODED : ";p_hex(prepend_ciphertext,8);cout<<endl;
+  cout<<"SALT  : ";p_hex(salt,8);cout<<endl;
 
   //free(cipher_alloced_mem);
 
@@ -387,6 +394,8 @@ string FileReaderWriter::decrypt_chunk() {
   ERR_load_crypto_strings();
   base64Decode(ciphertext_base64, &ciphertext, &cipher_len);
 
+  cout<<"DECODED : ";p_hex(ciphertext,cipher_len);cout<<endl;
+
   unsigned char key[MAX_KEY_LENGTH];
   unsigned char iv[MAX_IV_LENGTH];
 
@@ -484,7 +493,7 @@ string FileReaderWriter::decrypt(unsigned char *ciphertext, int ciphertext_len, 
 
   cout << "Dec: PLT  " << plaintext << endl;
   cout << "Dec: KEY  "; p_hex(key,32); cout << " -- size: " << sizeof(key) <<endl;
-  cout << "Dec: IV   "; p_hex(key,32 ); cout << " -- size: " << sizeof(iv) <<endl;
+  cout << "Dec: IV   "; p_hex(iv,32 ); cout << " -- size: " << sizeof(iv) <<endl;
 
   memcpy(plaintext_test, plaintext, sizeof(plaintext));
   plaintext_len = len;
