@@ -1,122 +1,21 @@
 testing
 creating tables
-
 [[[ Write 1  <<<<<<<< ]]]
-Appending chunk: THE KEY IS GREAT
-B64E: PLT 544845204b4559204953204752454154
-ENC_ SLT  ffffffd2ffffffea6ffffffa9a38ffffffa163 -- size: 8
-TEST: INFO: Encrypting: Key size is 32
-TESTINFO: Encrypting:  key: fffffff52927ffffffffffffffd35bffffffd3ffffffa4ffffff99ffffff82fffffffcffffffe2ffffffc5ffffffefffffffe6ffffffa7ffffffd14e2fffffff3effffff8878ffffffebfffffff9ffffffaf301e382e1b50 -- size is: 32
-ENC: Key fffffff52927ffffffffffffffd35bffffffd3ffffffa4ffffff99ffffff82fffffffcffffffe2ffffffc5ffffffefffffffe6ffffffa7ffffffd14e2fffffff3effffff8878ffffffebfffffff9ffffffaf301e382e1b50
-ENCRYPT: Key length 32
-TEST: Encrypt key: fffffff52927ffffffffffffffd35bffffffd3ffffffa4ffffff99ffffff82fffffffcffffffe2ffffffc5ffffffefffffffe6ffffffa7ffffffd14e2fffffff3effffff8878ffffffebfffffff9ffffffaf301e382e1b50
-TEST: Encrypt cipher : ffffffbdb7b5c0ffffffcc1ffffff8118ffffffe9fffffffeffffff8affffffbaffffffdd34ffffffcf2b54ffffffbdfffffffb61ffffffef5d19ffffff808ffffffc0ffffff93ffffffb7ffffffd6fffffffdffffffc0
-ENC: CPR ffffffbdb7b5c0ffffffcc1ffffff8118ffffffe9fffffffeffffff8affffffbaffffffdd34ffffffcf2b54ffffffbdfffffffb61ffffffef5d19ffffff808ffffffc0ffffff93ffffffb7ffffffd6fffffffdffffffc0
-TESTINFO: After Encrypting:  key: fffffff52927ffffffffffffffd35bffffffd3ffffffa4ffffff99ffffff82fffffffcffffffe2ffffffc5ffffffefffffffe6ffffffa7ffffffd14e2fffffff3effffff8878ffffffebfffffff9ffffffaf301e382e1b50-- size is: 32
-Appending chunk: ^secret1-ADSamue
-B64E: PLT 5e736563726574312d414453616d7565
-ENC_ SLT  ffffffd1e2ac6f62ffffffc238 -- size: 8
-TEST: INFO: Encrypting: Key size is 32
-TESTINFO: Encrypting:  key: 56ffffffd4ffffffdcd343c27d51ffffffacffffffff7625fffffffd24ffffff83ffffffa37c40ffffff9fffffffa7ffffff804cfffffff6ffffffe966ffffffd8ffffff908ffffffc7ffffffabffffffcb -- size is: 32
-ENC: Key 56ffffffd4ffffffdcd343c27d51ffffffacffffffff7625fffffffd24ffffff83ffffffa37c40ffffff9fffffffa7ffffff804cfffffff6ffffffe966ffffffd8ffffff908ffffffc7ffffffabffffffcb
-ENCRYPT: Key length 32
-TEST: Encrypt key: 56ffffffd4ffffffdcd343c27d51ffffffacffffffff7625fffffffd24ffffff83ffffffa37c40ffffff9fffffffa7ffffff804cfffffff6ffffffe966ffffffd8ffffff908ffffffc7ffffffabffffffcb
-TEST: Encrypt cipher : ffffffa939ffffffccfffffff34b1a4e487bffffff96ffffffedffffffc8ffffff8effffff83ffffffd2ffffffc52c1a46ffffff9030658ffffffac4336dffffffa8673f94
-ENC: CPR ffffffa939ffffffccfffffff34b1a4e487bffffff96ffffffedffffffc8ffffff8effffff83ffffffd2ffffffc52c1a46ffffff9030658ffffffac4336dffffffa8673f94
-TESTINFO: After Encrypting:  key: 56ffffffd4ffffffdcd343c27d51ffffffacffffffff7625fffffffd24ffffff83ffffffa37c40ffffff9fffffffa7ffffff804cfffffff6ffffffe966ffffffd8ffffff908ffffffc7ffffffabffffffcb-- size is: 32
-Appending chunk: l-@@@@@@@@@@@@@$
-B64E: PLT 6c2d4040404040404040404040404024
-ENC_ SLT  3a7242ffffffd1ffffffccfffffffa75ffffffd3 -- size: 8
-TEST: INFO: Encrypting: Key size is 32
-TESTINFO: Encrypting:  key: ffffff95ffffff85ffffffafffffff88ffffff9723ffffffe0ffffff8fffffffb920ffffffb7273678ffffffaeffffff8f7f6fffffffeaffffff93ffffffa0ffffffe2ffffff96ffffffee11ffffff86ffffffa93d5d41ffffffd345 -- size is: 32
-ENC: Key ffffff95ffffff85ffffffafffffff88ffffff9723ffffffe0ffffff8fffffffb920ffffffb7273678ffffffaeffffff8f7f6fffffffeaffffff93ffffffa0ffffffe2ffffff96ffffffee11ffffff86ffffffa93d5d41ffffffd345
-ENCRYPT: Key length 32
-TEST: Encrypt key: ffffff95ffffff85ffffffafffffff88ffffff9723ffffffe0ffffff8fffffffb920ffffffb7273678ffffffaeffffff8f7f6fffffffeaffffff93ffffffa0ffffffe2ffffff96ffffffee11ffffff86ffffffa93d5d41ffffffd345
-TEST: Encrypt cipher : ffffffdeffffffc1afffffffcffffffcdffffffe56dffffffa9ffffffc86f7422ffffffb7ffffff9034681dffffffb31f59ffffffbe7cffffffbf5a3e3142ffffff90c40ffffffe016
-ENC: CPR ffffffdeffffffc1afffffffcffffffcdffffffe56dffffffa9ffffffc86f7422ffffffb7ffffff9034681dffffffb31f59ffffffbe7cffffffbf5a3e3142ffffff90c40ffffffe016
-TESTINFO: After Encrypting:  key: ffffff95ffffff85ffffffafffffff88ffffff9723ffffffe0ffffff8fffffffb920ffffffb7273678ffffffaeffffff8f7f6fffffffeaffffff93ffffffa0ffffffe2ffffff96ffffffee11ffffff86ffffffa93d5d41ffffffd345-- size is: 32
-
+ENC: Key 29ffffffa211031ffffff9cffffffd67c3a48ffffffb57f2a3bffffffdd5a2ffffffabffffffe62edffffffec9ffffffe8dffffff8422dffffffa6ffffffcbffffffdb68
+ENC: Key ffffffadffffffc57a1341ffffff86ffffffd0ffffff8a70471ffffffd530ffffffe4ffffffdbffffffb879ffffffaaffffff9dffffffc2ffffff88373d1ffffff9152ffffff8946231ffffff98ffffffe9
+ENC: Key ffffffc9fffffff0ffffffb4fffffff42942fffffff0fffffffc7e4e10ffffffc042ffffffc2ffffffa33460ffffffbeffffff8469fffffff9ffffffea4251ffffffaaffffffcdffffffd5ffffffd1ffffffea40ffffffd7
 [[[ Read 1  >>>>>>>> ]]]
-DEC: Key fffffff52927ffffffffffffffd35bffffffd3ffffffa4ffffff99ffffff82fffffffcffffffe2ffffffc5ffffffefffffffe6ffffffa7ffffffd14e2fffffff3effffff8878ffffffebfffffff9ffffffaf301e382e1b50
-DEC: Key len 32
-Dec: CPR ffffffbdb7b5c0000000000000000000000000000
-LEN: PLT 16
-Dec: PLT  ¡MW_@fIÄÿ”¹Ì^{Ióq™5!Ö8³¢‹½
-B64: PLT ffffffa14d5745f406649ffffffc4ffffffffffffff90ffffff944ffffffb9ffffffcc5e
-Dec: KEY  fffffff52927ffffffffffffffd35bffffffd3ffffffa4ffffff99ffffff82fffffffcffffffe2ffffffc5ffffffefffffffe6ffffffa7ffffffd14e2fffffff3effffff8878ffffffebfffffff9ffffffaf301e382e1b50 -- size: 8
-Dec: IV   6affffffc145682ffffffc367b7e7b7fffffffa765ffffffec0ffffffe241414141414141414141414141414141 -- size: 8
-
--------------------
-FAIL: DECRYPT: Location 4, Finalize the decryption
-INFO: PLT ¡MW_@fIÄÿ”¹Ì^{Ióq™5!Ö8³¢‹½
-INFO: CPR ffffffbdb7b5c0000
-INFO: P+L 16
-INFO: KEY fffffff52927ffffffffffffffd35bffffffd3ffffffa4ffffff99ffffff82fffffffcffffffe2ffffffc5ffffffefffffffe6ffffffa7ffffffd14e2fffffff3effffff8878ffffffebfffffff9ffffffaf301e382e1b50
-
+> 1-ADSamuel-
 [[[ Write 2  <<<<<<<< ]]]
-DEC: Key fffffff52927ffffffffffffffd35bffffffd3ffffffa4ffffff99ffffff82fffffffcffffffe2ffffffc5ffffffefffffffe6ffffffa7ffffffd14e2fffffff3effffff8878ffffffebfffffff9ffffffaf301e382e1b50
-DEC: Key len 32
-Dec: CPR ffffffbdb7b5c0000000000000000000000000000
-LEN: PLT 16
-Dec: PLT  ¡MW_@fIÄÿ”¹Ì^{Ióq™5!Ö8³¢‹½
-B64: PLT ffffffa14d5745f406649ffffffc4ffffffffffffff90ffffff944ffffffb9ffffffcc5e
-Dec: KEY  fffffff52927ffffffffffffffd35bffffffd3ffffffa4ffffff99ffffff82fffffffcffffffe2ffffffc5ffffffefffffffe6ffffffa7ffffffd14e2fffffff3effffff8878ffffffebfffffff9ffffffaf301e382e1b50 -- size: 8
-Dec: IV   6affffffc145682ffffffc367b7e7b7fffffffa765ffffffec0ffffffe241414141414141414141414141414141 -- size: 8
-
--------------------
-FAIL: DECRYPT: Location 4, Finalize the decryption
-INFO: PLT ¡MW_@fIÄÿ”¹Ì^{Ióq™5!Ö8³¢‹½
-INFO: CPR ffffffbdb7b5c0000
-INFO: P+L 16
-INFO: KEY fffffff52927ffffffffffffffd35bffffffd3ffffffa4ffffff99ffffff82fffffffcffffffe2ffffffc5ffffffefffffffe6ffffffa7ffffffd14e2fffffff3effffff8878ffffffebfffffff9ffffffaf301e382e1b50
-
+ENC: Key ffffffd7ffffffa3ffffffeaffffffcaffffffe8fffffff0656effffff8d32ffffff8d2affffffd4ffffffac5cffffffcdffffff8cffffffb3fffffff6ffffffecffffff94ffffff8d522b4ffffff955affffff8cffffff80ffffffcb6d61
+ENC: Key ffffff9646ffffffc4ffffffe8ffffff9affffffd9ffffff93ffffffabffffffac75ffffff8556ffffff8fffffffd0ffffff9effffffe07440782cffffffe73effffffd9ffffffe16174ffffffdb26ffffffc6ffffff96ffffff92fffffff8
 [[[ Read 2  >>>>>>>> ]]]
-DEC: Key fffffff52927ffffffffffffffd35bffffffd3ffffffa4ffffff99ffffff82fffffffcffffffe2ffffffc5ffffffefffffffe6ffffffa7ffffffd14e2fffffff3effffff8878ffffffebfffffff9ffffffaf301e382e1b50
-DEC: Key len 32
-Dec: CPR ffffffbdb7b5c0000000000000000000000000000
-LEN: PLT 16
-Dec: PLT  ¡MW_@fIÄÿ”¹Ì^{Ióq™5!Ö8³¢‹½
-B64: PLT ffffffa14d5745f406649ffffffc4ffffffffffffff90ffffff944ffffffb9ffffffcc5e
-Dec: KEY  fffffff52927ffffffffffffffd35bffffffd3ffffffa4ffffff99ffffff82fffffffcffffffe2ffffffc5ffffffefffffffe6ffffffa7ffffffd14e2fffffff3effffff8878ffffffebfffffff9ffffffaf301e382e1b50 -- size: 8
-Dec: IV   6affffffc145682ffffffc367b7e7b7fffffffa765ffffffec0ffffffe241414141414141414141414141414141 -- size: 8
-
--------------------
-FAIL: DECRYPT: Location 4, Finalize the decryption
-INFO: PLT ¡MW_@fIÄÿ”¹Ì^{Ióq™5!Ö8³¢‹½
-INFO: CPR ffffffbdb7b5c0000
-INFO: P+L 16
-INFO: KEY fffffff52927ffffffffffffffd35bffffffd3ffffffa4ffffff99ffffff82fffffffcffffffe2ffffffc5ffffffefffffffe6ffffffa7ffffffd14e2fffffff3effffff8878ffffffebfffffff9ffffffaf301e382e1b50
-
+> 1-ADSamuel-
+> 2-ADCharles-
 [[[ Write 3  <<<<<<<< ]]]
-DEC: Key fffffff52927ffffffffffffffd35bffffffd3ffffffa4ffffff99ffffff82fffffffcffffffe2ffffffc5ffffffefffffffe6ffffffa7ffffffd14e2fffffff3effffff8878ffffffebfffffff9ffffffaf301e382e1b50
-DEC: Key len 32
-Dec: CPR ffffffbdb7b5c0000000000000000000000000000
-LEN: PLT 16
-Dec: PLT  ¡MW_@fIÄÿ”¹Ì^{Ióq™5!Ö8³¢‹½
-B64: PLT ffffffa14d5745f406649ffffffc4ffffffffffffff90ffffff944ffffffb9ffffffcc5e
-Dec: KEY  fffffff52927ffffffffffffffd35bffffffd3ffffffa4ffffff99ffffff82fffffffcffffffe2ffffffc5ffffffefffffffe6ffffffa7ffffffd14e2fffffff3effffff8878ffffffebfffffff9ffffffaf301e382e1b50 -- size: 8
-Dec: IV   6affffffc145682ffffffc367b7e7b7fffffffa765ffffffec0ffffffe241414141414141414141414141414141 -- size: 8
-
--------------------
-FAIL: DECRYPT: Location 4, Finalize the decryption
-INFO: PLT ¡MW_@fIÄÿ”¹Ì^{Ióq™5!Ö8³¢‹½
-INFO: CPR ffffffbdb7b5c0000
-INFO: P+L 16
-INFO: KEY fffffff52927ffffffffffffffd35bffffffd3ffffffa4ffffff99ffffff82fffffffcffffffe2ffffffc5ffffffefffffffe6ffffffa7ffffffd14e2fffffff3effffff8878ffffffebfffffff9ffffffaf301e382e1b50
-
+ENC: Key 395557ffffff82affffffb2ffffff8bffffff84ffffffc182d20ffffff9a7cffffffe6454ffffffb0ffffffa4ffffffc93effffffea6f72531bffffffcfffffff906223fffffff9ffffffb5
+ENC: Key 3d4b2d285e13ffffffe36668ffffff987065ffffffe436ffffffe8ffffff9d2b4bffffffb67620187ffffffa4685c132433ffffff89ffffffccffffff8b
 [[[ Read 3  >>>>>>>> ]]]
-DEC: Key fffffff52927ffffffffffffffd35bffffffd3ffffffa4ffffff99ffffff82fffffffcffffffe2ffffffc5ffffffefffffffe6ffffffa7ffffffd14e2fffffff3effffff8878ffffffebfffffff9ffffffaf301e382e1b50
-DEC: Key len 32
-Dec: CPR ffffffbdb7b5c0000000000000000000000000000
-LEN: PLT 16
-Dec: PLT  ¡MW_@fIÄÿ”¹Ì^{Ióq™5!Ö8³¢‹½
-B64: PLT ffffffa14d5745f406649ffffffc4ffffffffffffff90ffffff944ffffffb9ffffffcc5e
-Dec: KEY  fffffff52927ffffffffffffffd35bffffffd3ffffffa4ffffff99ffffff82fffffffcffffffe2ffffffc5ffffffefffffffe6ffffffa7ffffffd14e2fffffff3effffff8878ffffffebfffffff9ffffffaf301e382e1b50 -- size: 8
-Dec: IV   6affffffc145682ffffffc367b7e7b7fffffffa765ffffffec0ffffffe241414141414141414141414141414141 -- size: 8
-
--------------------
-FAIL: DECRYPT: Location 4, Finalize the decryption
-INFO: PLT ¡MW_@fIÄÿ”¹Ì^{Ióq™5!Ö8³¢‹½
-INFO: CPR ffffffbdb7b5c0000
-INFO: P+L 16
-INFO: KEY fffffff52927ffffffffffffffd35bffffffd3ffffffa4ffffff99ffffff82fffffffcffffffe2ffffffc5ffffffefffffffe6ffffffa7ffffffd14e2fffffff3effffff8878ffffffebfffffff9ffffffaf301e382e1b50
+> 1-ADSamuel-
+> 2-ADCharles-
+> 3-ADSamuel-R1-

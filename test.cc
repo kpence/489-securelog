@@ -37,11 +37,11 @@ class FileReaderWriter {
   public:
     FileReaderWriter(const string fname,
                      const string _s_key)
-      : filename(fname), s_key(_s_key), record_string(), ctx(NULL), key_verified(0)
+      : filename(fname), s_key(_s_key), ctx(NULL), key_verified(0)
     {
       if (load_file(fname) == 1) {
         key_verified = verify_key();
-        cout << "DEV OUTPUT: Key is verified. \n";
+        //cout << "DEV OUTPUT: Key is verified. \n";
       }
     }
 
@@ -106,8 +106,7 @@ class FileReaderWriter {
  */
 int FileReaderWriter::append_and_encrypt_chunk(string chunk) {
   // Append to end of the file
-  cout << "Appending chunk: " << chunk << endl;
-  cout << "B64E: PLT ";p_hex((unsigned char*)chunk.c_str(),DECRYPTED_CHUNK_SIZE);cout<<endl;
+  //cout << "Appending chunk: " << chunk << endl;
 
   size_t cipher_len;
 
@@ -133,40 +132,25 @@ int FileReaderWriter::append_and_encrypt_chunk(string chunk) {
 
   memcpy(salt_save, salt,8);
 
-  //cout << "TEST: salt before " << salt << endl;
-  //cout << "TEST: salt_Save before " << salt_save << endl;
-  //cout << "TEST: cmp before " << strncmp((char*)salt_save,(char*)salt,8) << endl;
-
   // Step one (Part B) Create the key-stretched key
   int key_size = initAES(s_key.c_str(), salt, key, iv);
-  cout << "ENC_ SLT  "; p_hex(salt,8 ); cout << " -- size: " << 8 <<endl;
-  cout << "TEST: INFO: Encrypting: Key size is " << key_size << endl;
-  printf("TESTINFO: Encrypting:  key: "); p_hex(key, 32); printf(" -- size is: %lu\n", sizeof(key));
 
-  //cout << "TEST: salt right after " << salt << endl;
-  //cout << "TEST: salt_save " << salt_save << endl;
-  
   if (strncmp((char*)salt_save, (char*)salt, 8)!=0) {
-    cout << "Mysterious issue! The salt has changed during the key stretching process\n";
+    cout << "FAIL: Mysterious issue! The salt has changed during the key stretching process\n";
     return 0;
   }
 
   // Step two Perform the AES encryption
   cipher_len = encrypt((unsigned char*)chunk.c_str(), DECRYPTED_CHUNK_SIZE, key, iv, ciphertext);
-  printf("ENC: CPR "); p_hex(ciphertext, cipher_len); cout <<endl;
-  printf("TESTINFO: After Encrypting:  key: "); p_hex(key, 32); printf("-- size is: %lu\n", sizeof(key));
+  //printf("ENC: CPR "); p_hex(ciphertext, cipher_len); cout <<endl;
 
   // Step three Prepend the cypher with the SALT
   prepend_ciphertext = (unsigned char*)malloc(cipher_len+16);
-  strcpy( (char*)prepend_ciphertext,"Salted__");
-  strncat((char*)prepend_ciphertext,(char*)salt,8);
+  memcpy(prepend_ciphertext,"Salted__",8);
+  memcpy(prepend_ciphertext+8,salt,8);
+  memcpy(prepend_ciphertext+16,ciphertext,cipher_len);
 
-  //cout << "AFTER Prepended : " << prepend_ciphertext << endl;
-  strncat((char*)prepend_ciphertext,(char*)ciphertext,cipher_len);
-
-  //cout << "TEST: salt after " << salt << endl;
-  //cout << "TEST: after also " << prepend_ciphertext << endl;
-
+  //cout <<"prepend_ciphertext ";p_hex(prepend_ciphertext,cipher_len+16);cout<<endl;
   cipher_len += 16;
 
   // Step four Encode in Base64
@@ -372,7 +356,7 @@ int FileReaderWriter::load_file(string fname) {
 string FileReaderWriter::decrypt_next_chunk() {
   if (read_chunk() == 0)
     return "";
-  cout << "===Finished reading chunk : " << s_cipher_base64 <<"\n";
+  //cout << "===Finished reading chunk : " << s_cipher_base64 <<"\n";
   return decrypt_chunk();
 }
 
@@ -391,25 +375,19 @@ string FileReaderWriter::decrypt_chunk() {
   unsigned char key[MAX_KEY_LENGTH];
   unsigned char iv[MAX_IV_LENGTH];
 
+  //cout << "DEC: prepended_ciphertext ";p_hex(ciphertext,cipher_len);cout<<endl;
   if (strncmp((const char*)ciphertext,"Salted__",8) == 0) {
     memcpy(salt,&ciphertext[8],8);
     cipher_alloced_mem = ciphertext;
     ciphertext += 16;
     cipher_len -= 16;
   }
+  else {
+    cout<<"\n\n~~~~~~~~~~~ERROR Salted not found!~~~~~~~~~~~\n\n";
+  }
   int key_size = initAES(s_key.c_str(), salt, key, iv);
 
-  if (key_verified != 0) {
-    cout << "Dec_ SLT  "; p_hex(salt,8 ); cout << " -- size: " << 8 <<endl;
-    cout << "TEST: INFO: Decrypting: Key size is " << key_size << endl;
-    printf("TESTINFO: Decrypting:  key: "); p_hex(key, 32); printf("-- size is: %lu\n", sizeof(key));
-  }
-
-
   string result = decrypt(ciphertext, cipher_len, key, iv);
-  if (key_verified != 0) {
-    printf("TESTINFO: Decrypting (after decrypt):  key: "); p_hex(key, 32); printf("-- size is: %lu\n", sizeof(key));
-  }
 
   free(cipher_alloced_mem);
 
@@ -426,10 +404,14 @@ void FileReaderWriter::handleOpenSSLErrors(void)
   abort();
 }
 
+/* The following method waas originally copied from this website:
+ *
+ * https://wiki.openssl.org/index.php/EVP_Symmetric_Encryption_and_Decryption#Decrypting_the_message
+ *
+ */
 string FileReaderWriter::decrypt(unsigned char *ciphertext, int ciphertext_len, unsigned char *key,
   unsigned char *iv ) {
 
-  //printf("Dec: AT THE START: key:"); p_hex(key,sizeof(key)); cout << " -- size: " << sizeof(key) <<endl;
   unsigned char *plaintexts;
   int len;
   int plaintext_len;
@@ -438,9 +420,6 @@ string FileReaderWriter::decrypt(unsigned char *ciphertext, int ciphertext_len, 
   bzero(plaintext,ciphertext_len);
   bzero(plaintext_test,ciphertext_len);
 
-  //printf("Dec: BEFORE CTX NEW: key:"); p_hex(key,sizeof(key)); cout << " -- size: " << sizeof(key) <<endl;
-  //cout << "Dec: Before CTX, plaintext : " << plaintext << endl;
-
   /* Create and initialise the context */
   if(!(ctx = EVP_CIPHER_CTX_new())) {
     cout << "\n-------------------\nFAIL: DECRYPT: Location 1, Initializing context\n";
@@ -448,30 +427,21 @@ string FileReaderWriter::decrypt(unsigned char *ciphertext, int ciphertext_len, 
   }
   EVP_CIPHER_CTX_set_padding(ctx, 0);
 
-  //printf("Dec: BEFORE INIT: key: "); p_hex(key,sizeof(key)); cout << " -- size: " << sizeof(key) <<endl;
-  //cout << "Dec: Before INIT, plaintext : " << plaintext << endl;
-
   /* Don't set key or IV right away; we want to check lengths */
   if(1 != EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, NULL, NULL)) {
     cout << "\n-------------------\nFAIL: DECRYPT: Location 1.5, Finding key length\n";
     handleOpenSSLErrors();
   }
 
-  cout<<"DEC: Key ";p_hex(key,32);cout<<endl;
-
   /* Initialise the decryption operation. IMPORTANT - ensure you use a key
    * and IV size appropriate for your cipher
    * In this example we are using 256 bit AES (i.e. a 256 bit key). The
    * IV size for *most* modes is the same as the block size. For AES this
    * is 128 bits */
-  cout << "DEC: Key len " << EVP_CIPHER_CTX_key_length(ctx) << endl;
   if(1 != EVP_DecryptInit_ex(ctx, NULL, NULL, key, iv)) {
     cout << "\n-------------------\nFAIL: DECRYPT: Location 2, Initialize decryption operation\n";
     handleOpenSSLErrors();
   }
-
-  //printf("Dec: Key length: %d\n\n",(int)EVP_CIPHER_key_length(EVP_aes_256_cbc()) );
-  //printf("Dec: Key length: %d\n\n",(int)EVP_CIPHER_CTX_key_length(ctx) );
 
   /* Provide the message to be decrypted, and obtain the plaintext output.
    * EVP_DecryptUpdate can be called multiple times if necessary
@@ -481,12 +451,14 @@ string FileReaderWriter::decrypt(unsigned char *ciphertext, int ciphertext_len, 
     handleOpenSSLErrors();
   }
 
+  /*
   cout << "Dec: CPR ";p_hex(ciphertext,ciphertext_len); cout<<endl;
   cout << "LEN: PLT " << len<<endl;
   cout << "Dec: PLT  " << plaintext << endl;
   cout << "B64: PLT ";p_hex(plaintext,len);cout<<endl;
   cout << "Dec: KEY  "; p_hex(key,32); cout << " -- size: " << sizeof(key) <<endl;
   cout << "Dec: IV   "; p_hex(iv,32 ); cout << " -- size: " << sizeof(iv) <<endl;
+  */
 
   //memcpy(plaintext_test, plaintext, sizeof(plaintext));
   plaintext_len = len;
@@ -496,12 +468,6 @@ string FileReaderWriter::decrypt(unsigned char *ciphertext, int ciphertext_len, 
    */
   if(1 != EVP_DecryptFinal_ex(ctx, plaintext + len, &len)) {
     cout << "\n-------------------\nFAIL: DECRYPT: Location 4, Finalize the decryption\n";
-    cout << "INFO: PLT " << plaintext << endl;
-    //cout << "B64E: PLT ";p_hex(plaintext,plaintext_len+len);cout<<endl;
-    //cout << "INFO: plaintext_test: "; p_hex(plaintext_test, sizeof(plaintext_test)); cout << endl;
-    //cout << "INFO: CPR "; p_hex(ciphertext, ciphertext)); cout << endl;
-    cout << "INFO: P+L " << plaintext_len + len << endl;
-    cout << "INFO: KEY "; p_hex(key, MAX_KEY_LENGTH); cout << endl;
     handleOpenSSLErrors();
   }
   plaintext_len += len;
@@ -517,6 +483,11 @@ string FileReaderWriter::decrypt(unsigned char *ciphertext, int ciphertext_len, 
   return ret;
 }
 
+/* The following method waas originally copied from this website:
+ *
+ * https://eclipsesource.com/blogs/2017/01/17/tutorial-aes-encryption-and-decryption-with-openssl/
+ *
+ */
 int FileReaderWriter::initAES(const string& pass, unsigned char* salt, unsigned char* key, unsigned char* iv )
 {
   bzero(key,sizeof(key));
@@ -526,6 +497,11 @@ int FileReaderWriter::initAES(const string& pass, unsigned char* salt, unsigned 
   return key_size;
 }
 
+/* The following method waas originally copied from this website:
+ *
+ * https://eclipsesource.com/blogs/2017/01/17/tutorial-aes-encryption-and-decryption-with-openssl/
+ *
+ */
 size_t FileReaderWriter::calcDecodeLength(char* b64input) {
   size_t len = strlen(b64input), padding = 0;
 
@@ -538,6 +514,11 @@ size_t FileReaderWriter::calcDecodeLength(char* b64input) {
 
 
 
+/* The following method waas originally copied from this website:
+ *
+ * https://eclipsesource.com/blogs/2016/09/07/tutorial-code-signing-and-verification-with-openssl/
+ *
+ */
 void FileReaderWriter::base64Encode(const unsigned char* buffer,
                                     size_t length,
                                     char** base64Text)
@@ -558,6 +539,11 @@ void FileReaderWriter::base64Encode(const unsigned char* buffer,
   *base64Text=(*bufferPtr).data;
 }
 
+/* The following method waas originally copied from this website:
+ *
+ * https://eclipsesource.com/blogs/2017/01/17/tutorial-aes-encryption-and-decryption-with-openssl/
+ *
+ */
 void FileReaderWriter::base64Decode(char* b64message, unsigned char** buffer, size_t* length) {
   BIO *bio, *b64;
 
@@ -574,6 +560,11 @@ void FileReaderWriter::base64Decode(char* b64message, unsigned char** buffer, si
   BIO_free_all(bio);
 }
 
+/* The following method waas originally copied from this website:
+ *
+ * https://wiki.openssl.org/index.php/EVP_Symmetric_Encryption_and_Decryption#Encrypting_the_message
+ *
+ */
 int FileReaderWriter::encrypt(unsigned char *plaintext, int plaintext_len, unsigned char *key,
             unsigned char *iv, unsigned char *ciphertext)
 {
@@ -587,7 +578,7 @@ int FileReaderWriter::encrypt(unsigned char *plaintext, int plaintext_len, unsig
 
     EVP_CIPHER_CTX_set_padding(ctx, 0);
 
-    cout<<"ENC: Key ";p_hex(key,32);cout<<endl;
+    //cout<<"ENC: Key ";p_hex(key,32);cout<<endl;
 
     /*
      * Initialise the encryption operation. IMPORTANT - ensure you use a key
@@ -599,11 +590,10 @@ int FileReaderWriter::encrypt(unsigned char *plaintext, int plaintext_len, unsig
     if(1 != EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv))
       handleOpenSSLErrors();
 
-    cout << "ENCRYPT: Key length " << EVP_CIPHER_CTX_key_length(ctx) << endl;
+    //cout << "ENCRYPT: Key length " << EVP_CIPHER_CTX_key_length(ctx) << endl;
 
 
     EVP_CIPHER_CTX_set_key_length(ctx, MAX_KEY_LENGTH);
-    printf("TEST: Encrypt key: "); p_hex(key,MAX_KEY_LENGTH); cout<<endl;
 
 
     /*
@@ -627,7 +617,7 @@ int FileReaderWriter::encrypt(unsigned char *plaintext, int plaintext_len, unsig
     /* Clean up */
     EVP_CIPHER_CTX_free(ctx);
 
-    cout << "TEST: Encrypt cipher : "; p_hex(ciphertext, ciphertext_len); cout << endl;
+    //cout << "TEST: Encrypt cipher : "; p_hex(ciphertext, ciphertext_len); cout << endl;
 
     return ciphertext_len;
 }
@@ -658,7 +648,7 @@ int main(int argc, char** argv) {
           frw.append_record(key + optarg);
           break;
       default:
-          std::cerr << "Invalid Command Line Argument\n";
+          cerr << "Invalid Command Line Argument\n";
     }
   }
 
