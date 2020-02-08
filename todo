@@ -1,5 +1,3 @@
 Debugging analysis:
 
-
-
-1. Record when it fails the following given in their encryption and decryption encryption
+1. The problem can't be the key or the salt. (And I feel safe ruling out key size being a problem)

@@ -113,7 +113,6 @@ int FileReaderWriter::append_and_encrypt_chunk(string chunk) {
 
   char* ciphertext_base64;
   unsigned char ciphertext[128];
-  memset(ciphertext,0,128);
   unsigned char *prepend_ciphertext;
   unsigned char salt_save[8];
   unsigned char salt[8];
@@ -154,6 +153,7 @@ int FileReaderWriter::append_and_encrypt_chunk(string chunk) {
 
   // Step two Perform the AES encryption
   cipher_len = encrypt((unsigned char*)chunk.c_str(), DECRYPTED_CHUNK_SIZE, key, iv, ciphertext);
+  printf("ENC: CPR "); p_hex(ciphertext, cipher_len); cout <<endl;
   printf("TESTINFO: After Encrypting:  key: "); p_hex(key, 32); printf("-- size is: %lu\n", sizeof(key));
 
   // Step three Prepend the cypher with the SALT
@@ -481,6 +481,7 @@ string FileReaderWriter::decrypt(unsigned char *ciphertext, int ciphertext_len, 
     handleOpenSSLErrors();
   }
 
+  cout << "Dec: CPR ";p_hex(ciphertext,ciphertext_len); cout<<endl;
   cout << "LEN: PLT " << len<<endl;
   cout << "Dec: PLT  " << plaintext << endl;
   cout << "B64: PLT ";p_hex(plaintext,len);cout<<endl;
@@ -498,7 +499,7 @@ string FileReaderWriter::decrypt(unsigned char *ciphertext, int ciphertext_len, 
     cout << "INFO: PLT " << plaintext << endl;
     //cout << "B64E: PLT ";p_hex(plaintext,plaintext_len+len);cout<<endl;
     //cout << "INFO: plaintext_test: "; p_hex(plaintext_test, sizeof(plaintext_test)); cout << endl;
-    cout << "INFO: CPR "; p_hex(ciphertext, sizeof(ciphertext)); cout << endl;
+    //cout << "INFO: CPR "; p_hex(ciphertext, ciphertext)); cout << endl;
     cout << "INFO: P+L " << plaintext_len + len << endl;
     cout << "INFO: KEY "; p_hex(key, MAX_KEY_LENGTH); cout << endl;
     handleOpenSSLErrors();
@@ -586,7 +587,7 @@ int FileReaderWriter::encrypt(unsigned char *plaintext, int plaintext_len, unsig
 
     EVP_CIPHER_CTX_set_padding(ctx, 0);
 
-    cout<<"DEC: Key ";p_hex(key,32);cout<<endl;
+    cout<<"ENC: Key ";p_hex(key,32);cout<<endl;
 
     /*
      * Initialise the encryption operation. IMPORTANT - ensure you use a key
@@ -626,7 +627,7 @@ int FileReaderWriter::encrypt(unsigned char *plaintext, int plaintext_len, unsig
     /* Clean up */
     EVP_CIPHER_CTX_free(ctx);
 
-    cout << "TEST: Encrypt cipher : "; p_hex(ciphertext, sizeof(ciphertext)); cout << endl;
+    cout << "TEST: Encrypt cipher : "; p_hex(ciphertext, ciphertext_len); cout << endl;
 
     return ciphertext_len;
 }
