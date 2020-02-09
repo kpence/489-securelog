@@ -12,7 +12,7 @@ using namespace std;
 
 int main(int argc, char** argv) {
   string key = "secret";
-  FileReaderWriter frw("testdir", key);
+  FileReaderWriter frw("log1", key);
   int status = frw.init();
   if (status == INTEGRITY_VIOLATION) {
     cout << "Mess up\n";

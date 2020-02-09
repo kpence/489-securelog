@@ -67,7 +67,7 @@ int main(int argc, char** argv) {
             handleInvalidInput();
             exit(ERROR_EXIT_CODE);
           }
-          timestamp = optarg;break;
+          roomid = optarg;break;
       case 'F':
           if (!logfile.empty()) {
             handleInvalidInput();
@@ -131,13 +131,13 @@ int test_and_append_entry() {
   else if (EntryParser::is_timestamp_valid(timestamp)==0) { error=1; }
   else if (EntryParser::is_roomid_valid(roomid)==0) { error=1; }
 
-  error = 0; // TODO testing
   if (error == 1) {
     handleInvalidInput();
     exit(ERROR_EXIT_CODE);
   }
 
-  roomid = EntryParser::parse_roomid(roomid);
+  if (!roomid.empty())
+    roomid = EntryParser::parse_roomid(roomid);
 
   // Create log writer/reader
   FileReaderWriter frw(logfile, token);
@@ -156,19 +156,18 @@ int test_and_append_entry() {
       handleIntegrityViolation();
       exit(ERROR_EXIT_CODE);
     }
-    p.load_record(s, token);
+    p.load_record(s);
     if (!p.is_record_valid()) {
       handleIntegrityViolation();
       exit(ERROR_EXIT_CODE);
     }
-    if (p.compare_timestamp(timestamp) != 0) {
+    if (p.compare_timestamp(timestamp) == 0) {
       handleInvalidInput();
       exit(ERROR_EXIT_CODE);
     }
 
-
     // Now iterate through the records
-    int i = 1, in_hospital = 0;
+    int i = 1, in_hospital = 0, touched = 0;
     string room_in;
 
     while (i < frw.get_num_chunks()) {
@@ -179,7 +178,7 @@ int test_and_append_entry() {
       }
 
       // Load to record parser
-      p.load_record(s, token);
+      p.load_record(s);
       if (!p.is_record_valid()) {
         handleIntegrityViolation();
         exit(ERROR_EXIT_CODE);
@@ -189,7 +188,10 @@ int test_and_append_entry() {
       if (p.same_person(name_type, name)==0)
         continue;
 
-      // TODO check with parse whether it's an arrival or departure to/from room/hospital, and keep track if that's logical in this scope
+      // The person has been found in here
+      touched = 1;
+
+      // check with parse whether it's an arrival or departure to/from room/hospital, and keep track if that's logical in this scope
       if (p.get_event_type() == 'A' && p.get_roomid().empty()) {
         if (in_hospital != 0) {
           handleIntegrityViolation();
@@ -228,29 +230,40 @@ int test_and_append_entry() {
     }
 
     // After iterating, check if valid entry
-    if (roomid.empty() && event_type=='A') {
-      if (!room_in.empty() || in_hospital != 0) {
-        handleIntegrityViolation();
+    // If the person has never been logged, then only accept roomless arrival
+    if (touched == 0) {
+      if (!roomid.empty() || event_type=='L') {
+        handleInvalidInput();
         exit(ERROR_EXIT_CODE);
       }
     }
-    else if (roomid.empty() && event_type=='L') {
-      if (!room_in.empty() || in_hospital == 0) {
-        handleIntegrityViolation();
-        exit(ERROR_EXIT_CODE);
+    else {
+
+      if (roomid.empty() && event_type=='A') {
+        if (!room_in.empty() || in_hospital != 0) {
+          handleIntegrityViolation();
+          exit(ERROR_EXIT_CODE);
+        }
       }
-    }
-    else if (!roomid.empty() && event_type=='A') {
-      if (!room_in.empty() || in_hospital == 0) {
-        handleIntegrityViolation();
-        exit(ERROR_EXIT_CODE);
+      else if (roomid.empty() && event_type=='L') {
+        if (!room_in.empty() || in_hospital == 0) {
+          handleIntegrityViolation();
+          exit(ERROR_EXIT_CODE);
+        }
       }
-    }
-    else if (!roomid.empty() && event_type=='L') {
-      if (roomid.compare(room_in) != 0 || in_hospital == 0) {
-        handleIntegrityViolation();
-        exit(ERROR_EXIT_CODE);
+      else if (!roomid.empty() && event_type=='A') {
+        if (!room_in.empty() || in_hospital == 0) {
+          handleIntegrityViolation();
+          exit(ERROR_EXIT_CODE);
+        }
       }
+      else if (!roomid.empty() && event_type=='L') {
+        if (roomid.compare(room_in) != 0 || in_hospital == 0) {
+          handleIntegrityViolation();
+          exit(ERROR_EXIT_CODE);
+        }
+      }
+
     }
 
   }
@@ -261,7 +274,6 @@ int test_and_append_entry() {
       exit(ERROR_EXIT_CODE);
     }
   }
-
 
   // PASSED - NOW Append the entry
   s = EntryParser::make_record(token,timestamp,event_type,name_type,name,roomid);

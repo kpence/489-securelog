@@ -63,7 +63,7 @@ class EntryParser {
     // Extraction stuff
     static string make_record(string token, string timestamp, char event_type, char name_type, string name, string roomid);
 
-    int load_record(string rcd, string token);
+    int load_record(string rcd);
     int is_record_valid();
 
     int compare_timestamp(string timestamp);

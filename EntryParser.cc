@@ -31,47 +31,43 @@ using namespace std;
 
 using namespace std;
 
-// Example: token-3ADSamuel-R1
+// Example: -3ADSamuel-R1
 //
 // If this fails it's an INTEGRITY VIOLATION
-int EntryParser::load_record(string rcd, string token) {
+int EntryParser::load_record(string rcd) {
   is_valid = 0; // init
 
   // Make this empty at first
   _roomid = "";
 
 
-  // smallest example: token-3ADa-
+  // smallest example: -3ADa-
   // If too small
-  if (rcd.size() < (6 + token.size())) {
+  if (rcd.size() < 6) {
     is_valid = 0;
     return 0;
   }
 
-  // Compare with given token
-  if (rcd.compare(0, token.size(), token) != 0) {
-    is_valid = 0;
-    return 0;
-  }
-  if (rcd[token.size()] != '-') {
+  // make sure it starts with -
+  if (rcd[0] != '-') {
     is_valid = 0;
     return 0;
   }
 
   // If following timestamp isn't valid
-  size_t event_type_pos = rcd.find_first_of("AL", token.size());
+  size_t event_type_pos = rcd.find_first_of("AL");
   if (event_type_pos == string::npos) {
     is_valid = 0;
     return 0;
   }
-  string ts = rcd.substr(token.size()+1, event_type_pos - token.size() - 1);
+  string ts = rcd.substr(1, event_type_pos - 1);
   if (is_timestamp_valid(ts)==0) {
     is_valid = 0;
     return 0;
   }
 
   // Make sure not too small
-  // smallest example: token-3ADa-
+  // smallest example: -3ADa-
   if (rcd.size() < (4 + event_type_pos)) {
     is_valid = 0;
     return 0;
@@ -105,7 +101,7 @@ int EntryParser::load_record(string rcd, string token) {
   // Check to see if too large then a room must be indicated
   if (rcd.size() > (name_end_pos + 1)) {
     // Make sure not too small
-    // smallest example: token-3ADa-R1
+    // smallest example: -3ADa-R1
     if (rcd.size() < (name_end_pos + 3)) {
       is_valid = 0;
       return 0;
@@ -129,7 +125,7 @@ int EntryParser::load_record(string rcd, string token) {
   _event_type = rcd[event_type_pos];
   _name_type = rcd[event_type_pos+1];
   _timestamp = ts;
-  string _name = name;
+  _name = name;
 
   is_valid = 1;
   return 0;
@@ -141,8 +137,8 @@ int EntryParser::is_record_valid() {
 // Returns 0 if argument is smaller or equal to _timestamp
 int EntryParser::compare_timestamp(string timestamp) {
   long int myts = stol(_timestamp);
-  long int ts = stol(timestamp);
-  return (ts <= myts) ? 0 : 1;
+  long int newts = stol(timestamp);
+  return (newts > myts) ? 1 : 0;
 }
 
 int EntryParser::same_person(char name_type, string name) {
