@@ -151,6 +151,7 @@ int EntryParser::same_person(char name_type, string name) {
 char EntryParser::get_event_type() { return _event_type; }
 char EntryParser::get_name_type() { return _name_type; }
 string EntryParser::get_roomid() { return _roomid; }
+string EntryParser::get_timestamp() { return _timestamp; }
 
 // Assuming these have been verified
 string EntryParser::make_record(string token, string timestamp, char event_type, char name_type

@@ -71,6 +71,7 @@ class EntryParser {
     char get_event_type();
     char get_name_type();
     string get_roomid();
+    string get_timestamp();
 
   protected:
   private:

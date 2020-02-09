@@ -1,11 +1,14 @@
 #include <iostream>
 #include <unistd.h>
 #include <string>
+#include <utility>
+#include <vector>
 #include <string.h>
 
-#include "FileReaderWriter.h"
-#include "EntryParser.h"
-#include "error.h"
+//#include "FileReaderWriter.h"
+//#include "EntryParser.h"
+//#include "error.h"
+#include "hospitalstate.h"
 
 using namespace std;
 
@@ -166,70 +169,11 @@ int test_and_append_entry() {
       exit(ERROR_EXIT_CODE);
     }
 
-    // Now iterate through the records
-    int i = 1, in_hospital = 0, touched = 0;
+    int touched, in_hospital;
     string room_in;
+    get_person_state(frw, p, in_hospital, touched, room_in, name_type, name);
 
-    while (i < frw.get_num_chunks()) {
-      i = frw.get_next_record_string(s, i);
-      if (s.empty()) {
-        handleIntegrityViolation();
-        exit(ERROR_EXIT_CODE);
-      }
-
-      // Load to record parser
-      p.load_record(s);
-      if (!p.is_record_valid()) {
-        handleIntegrityViolation();
-        exit(ERROR_EXIT_CODE);
-      }
-
-      // If the person isn't the one we want, then skip
-      if (p.same_person(name_type, name)==0)
-        continue;
-
-      // The person has been found in here
-      touched = 1;
-
-      // check with parse whether it's an arrival or departure to/from room/hospital, and keep track if that's logical in this scope
-      if (p.get_event_type() == 'A' && p.get_roomid().empty()) {
-        if (in_hospital != 0) {
-          handleIntegrityViolation();
-          exit(ERROR_EXIT_CODE);
-        }
-        in_hospital = 1;
-      }
-      else if (p.get_event_type() == 'L' && p.get_roomid().empty()) {
-        if (in_hospital == 0 || !room_in.empty()) {
-          handleIntegrityViolation();
-          exit(ERROR_EXIT_CODE);
-        }
-        in_hospital = 0;
-      }
-      else if (p.get_event_type() == 'A' && !p.get_roomid().empty()) {
-        if (in_hospital == 0 || !room_in.empty()) {
-          handleIntegrityViolation();
-          exit(ERROR_EXIT_CODE);
-        }
-      }
-      else if (p.get_event_type() == 'L' && !p.get_roomid().empty()) {
-        if (in_hospital == 0 || room_in.empty()) {
-          handleIntegrityViolation();
-          exit(ERROR_EXIT_CODE);
-        }
-      }
-
-      // Also this shouldn't be possible (throw error just in case)
-      if (!room_in.empty() && in_hospital == 0) {
-        handleIntegrityViolation();
-        exit(ERROR_EXIT_CODE);
-      }
-
-      // Otherwise
-      room_in = p.get_roomid();
-    }
-
-    // After iterating, check if valid entry
+    // After getting the state of the doctor, check if valid entry
     // If the person has never been logged, then only accept roomless arrival
     if (touched == 0) {
       if (!roomid.empty() || event_type=='L') {
@@ -238,7 +182,7 @@ int test_and_append_entry() {
       }
     }
     else {
-
+      // Make sure values from get_person_state are right conditions for the record entry
       if (roomid.empty() && event_type=='A') {
         if (!room_in.empty() || in_hospital != 0) {
           handleIntegrityViolation();

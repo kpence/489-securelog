@@ -8,20 +8,21 @@ echo "creating tables"
   #echo $i
 #done
 
-rm ./output.txt
+rm ./log1
 
-echo "[[[ Write 1  <<<<<<<< ]]]"
-./test -w 1-ADSamuel-
-echo "[[[ Read 1  >>>>>>>> ]]]"
-./test -r 999
-echo "[[[ Write 2  <<<<<<<< ]]]"
-./test -w 2-ADCharles-
-echo "[[[ Read 2  >>>>>>>> ]]]"
-./test -r 999
-echo "[[[ Write 3  <<<<<<<< ]]]"
-./test -w 3-ADSamuel-R1-
-echo "[[[ Read 3  >>>>>>>> ]]]"
-./test -r 999
+./logappend -T 1 -K secret -A -D Alice -F log1
+echo "test 2"
+./logappend -T 2 -K secret -A -N Bob -F log1
+echo "test 3"
+./logappend -T 3 -K secret -A -D Alice -R 1 -F log1
+./logappend -T 4 -K secret -A -N Bob -R 1 -F log1
+./logappend -T 5 -K secret -L -D Alice -R 1 -F log1
+./logappend -T 6 -K secret -A -D Alice -R 2 -F log1
+./logappend -T 7 -K secret -L -D Alice -R 2 -F log1
+./logappend -T 8 -K secret -A -D Alice -R 3 -F log1
+./logappend -T 9 -K secret -L -D Alice -R 3 -F log1
+./logappend -T 10 -K secret -A -D Alice -R 1 -F log1
+
 #./test -w 4-ANKyle-
 #./test -r 999
 #./test -w 5-ANKyle-R1-
