@@ -134,11 +134,14 @@ int EntryParser::is_record_valid() {
   return is_valid;
 }
 
+int EntryParser::compare_timestamps(string timestamp1, string timestamp2) {
+  long int myts = stol(timestamp1);
+  long int newts = stol(timestamp2);
+  return (newts > myts) ? 1 : 0;
+}
 // Returns 0 if argument is smaller or equal to _timestamp
 int EntryParser::compare_timestamp(string timestamp) {
-  long int myts = stol(_timestamp);
-  long int newts = stol(timestamp);
-  return (newts > myts) ? 1 : 0;
+  return compare_timestamps(_timestamp, timestamp);
 }
 
 int EntryParser::same_person(char name_type, string name) {
@@ -150,6 +153,7 @@ int EntryParser::same_person(char name_type, string name) {
 
 char EntryParser::get_event_type() { return _event_type; }
 char EntryParser::get_name_type() { return _name_type; }
+string EntryParser::get_name() { return _name; }
 string EntryParser::get_roomid() { return _roomid; }
 string EntryParser::get_timestamp() { return _timestamp; }
 

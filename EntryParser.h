@@ -66,10 +66,12 @@ class EntryParser {
     int load_record(string rcd);
     int is_record_valid();
 
+    static int compare_timestamps(string timestamp1, string timestamp2);
     int compare_timestamp(string timestamp);
     int same_person(char name_type, string name);
     char get_event_type();
     char get_name_type();
+    string get_name();
     string get_roomid();
     string get_timestamp();
 

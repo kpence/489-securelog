@@ -50,6 +50,12 @@ int get_hospital_state(FileReaderWriter& frw, EntryParser& p, map<pair<char,stri
   // Check if you need to track the rooms
   rooms.clear();
 
+
+  // Person States starts out as empty if you want to get all persons
+  int all_persons = 0;
+  if (person_states.empty())
+    all_persons = 1;
+
   // Now iterate through the records
   int i = 1, in_hospital = 0, touched = 0;
   string room_in, s;
@@ -88,7 +94,7 @@ int get_hospital_state(FileReaderWriter& frw, EntryParser& p, map<pair<char,stri
     char name_type;
     string name;
 
-    if (!person_states.empty()) {
+    if (all_persons == 0) {
       for (auto& ps : person_states) {
         name_type = ps.first.first;
         name = ps.first.second;
@@ -99,6 +105,9 @@ int get_hospital_state(FileReaderWriter& frw, EntryParser& p, map<pair<char,stri
       if (match==0)
         continue;
     }
+
+    name = p.get_name();
+    name_type = p.get_name_type();
 
 
     // Set the in_hospital and touched values
