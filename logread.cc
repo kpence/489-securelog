@@ -116,7 +116,6 @@ int main(int argc, char** argv) {
   EntryParser p;
 
   // This code prints out the rooms of name_type, name
-  read_type = 'S'; // TODO testing
   if (read_type == 'R') {
     map<pair<char,string>,person_state> person_states;
     auto to_track = make_pair(name_type, name);
