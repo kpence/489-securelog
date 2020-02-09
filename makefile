@@ -10,10 +10,10 @@ all: logread logappend
 %.o : %.cc
 	$(CXX) $^ -o $@ -c $(CPPFLAGS)
 
-logappend: logappend.o FileReaderWriter.o
+logappend: logappend.o EntryParser.o FileReaderWriter.o
 	$(CXX) $^ -o $@ $(LDFLAGS)
 
-logread: logread.o FileReaderWriter.o
+logread: logread.o EntryParser.o FileReaderWriter.o
 	$(CXX) $^ -o $@ $(LDFLAGS)
 
 

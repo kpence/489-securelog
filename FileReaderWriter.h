@@ -3,6 +3,7 @@
 #include <string>
 #include <fstream>
 #include <sstream>
+#include <vector>
 
 using namespace std;
 
@@ -19,9 +20,11 @@ class FileReaderWriter {
 		int init();
 
     // Reading/Parsing
-    string decrypt_next_chunk();
-    string get_next_record_string(); // (Empty if INTEGRITY VIOLATION) Reads the next record string in the file.
-    string get_last_record_string(); // Reads the latest record string in the file
+
+    int get_next_record_string(string& result, int chunk_no); // this returns the next chunk number or 0 if integrity failure
+    string get_record_string_at(int chunk_no); // (Empty if INTEGRITY VIOLATION) Reads the next record string in the file.
+    string get_record_string_before(int chunk_no); // Finds first record before chunk_no.
+    int get_num_chunks(); // (Empty if INTEGRITY VIOLATION) Reads the next record string in the file.
 
     // Writing
 
@@ -43,15 +46,16 @@ class FileReaderWriter {
     int append_and_encrypt_chunk(string s);
 
     // Reading/Parsing
-    string decrypt_chunk();
+    string decrypt_chunk(int chunk_no);
     string get_record_string();
-    int parse_record(); //records start with ^ and end with {@}$
+    int parse_record(int chunk_no, int reverse = 0); //records start with ^ and end with {@}$
 
     // I/O
     /*
      * 1. File directory must exist
      * 2. File directory or file must be able to be written to or else IO error and exit program
      */
+    vector<string> file_chunks;
     int load_file(string fname);
     int read_chunk();
 

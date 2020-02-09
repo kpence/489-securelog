@@ -32,7 +32,7 @@ using ErrorType::SUCCESS;
 
 #define KEY_LENGTH 32
 #define IV_LENGTH 32
-#define RECORD_MAX_SIZE 16*3 - 2
+#define RECORD_MAX_SIZE 16*10 - 2
 #define DECRYPTED_CHUNK_SIZE 16
 #define DECODED_CHUNK_SIZE 32
 #define CHUNK_SIZE 64
@@ -223,26 +223,40 @@ int FileReaderWriter::append_and_encrypt_chunk(string chunk) {
     cerr << "FAILURE: Writing to invalid file\n";
     return INVALID_FILE_PATH;
   }
-  //cout << "CHUNK MADE: " << string((char*)ciphertext_base64, CHUNK_SIZE) << endl;
+
+  file_chunks.push_back(string((char*)ciphertext_base64, CHUNK_SIZE));
   return SUCCESS;
 }
 
+// Simple getter
+int FileReaderWriter::get_num_chunks() {
+  return file_chunks.size();
+}
+
 // Returns 0 if integrity violation
-int FileReaderWriter::parse_record() {
+// Returns the number of the chunk after the last chunk read to parse record
+int FileReaderWriter::parse_record(int chunk_no, int reverse) {
   // Read new chunks until you reach a $
-  string s = decrypt_next_chunk();
+  string s = decrypt_chunk(chunk_no);
   if (s.empty()) {
     record_string = "";
     return 0;
   }
   record_string.clear();
-  //cout << "decrypting: " << s << endl;
 
+  // If direction is -1, then reverse until you find 
+  if (reverse == 1) {
+    while (s[0] != '^' && chunk_no > 1) {
+      s = decrypt_chunk(--chunk_no);
+    }
+    if (s[0] != '^') // failed to find valid record before point
+      return 0;
+  }
 
   // Read new chunks until record finishes
   while (s[DECRYPTED_CHUNK_SIZE-1] != '$') {
     record_string += s;
-    s = decrypt_next_chunk();
+    s = decrypt_chunk(++chunk_no);
     if (s.empty()) {
       record_string = "";
       return 0;
@@ -251,13 +265,32 @@ int FileReaderWriter::parse_record() {
   record_string += s;
   //cout << "decrypting, fin: " << record_string << endl;
 
+  // If record isn't valid, integrity violation
   int ret = validate_record(record_string);
-  return ret;
+  if (ret == 0)
+    return 0;
+
+  // Return the number of the next chunk
+  return chunk_no+1;
 }
 
-string FileReaderWriter::get_next_record_string() {
+string FileReaderWriter::get_record_string_before(int chunk_no) {
   string s;
-  if (parse_record() != 0)
+  if (parse_record(chunk_no, 1) != 0) // Set reverse optional parameter
+    s = get_record_string();
+  return s; // Empty if integrity violation
+}
+
+int FileReaderWriter::get_next_record_string(string& result, int chunk_no) {
+  int i = parse_record(chunk_no);
+  if (i != 0)
+    result = get_record_string(); // Empty if integrity violation
+  return i;
+}
+
+string FileReaderWriter::get_record_string_at(int chunk_no) {
+  string s;
+  if (parse_record(chunk_no) != 0)
     s = get_record_string();
   return s; // Empty if integrity violation
 }
@@ -302,11 +335,8 @@ int FileReaderWriter::validate_record(string rcd) {
 
 // Returns 0 if integrity violation
 int FileReaderWriter::verify_key() {
-  if (read_chunk() == 0)
-    return 0;
-
-  // Now decrypt the signature chunk
-  string s = decrypt_chunk();
+  // decrypt the signature chunk
+  string s = decrypt_chunk(0);
 
   // If empty, then there's an 
   if (s.empty()) {
@@ -333,6 +363,10 @@ int FileReaderWriter::read_chunk() {
     return 0;
   }
   ifs.read(buffer, CHUNK_SIZE);
+
+  // INTEGRITY VIOLATION : Read only partial chunk
+  if ((ifs.rdstate() & ifstream::eofbit) != 0)
+    return -1;
   s_cipher_base64 = string(buffer, CHUNK_SIZE);
   return 1;
 }
@@ -354,17 +388,20 @@ int FileReaderWriter::load_file(string fname) {
     append_and_encrypt_chunk(VERIFICATION_CHUNK_STR);
     return SUCCESS_NEW_FILE;
   }
-  return SUCCESS_FILE_EXISTS;
-}
 
-string FileReaderWriter::decrypt_next_chunk() {
-  if (read_chunk() == 0)
-    return "";
-  //cout << "===Finished reading chunk : " << s_cipher_base64 <<"\n";
-  string s = decrypt_chunk();
+  // If file exists, load all the chunk
+  int ret;
+  while(1) {
+    ret = read_chunk();
+    if (ret == 0)
+      return SUCCESS_FILE_EXISTS;
+    if (ret == -1)
+      return INTEGRITY_VIOLATION; // If it only read a partial chunk then the data is corrupted
 
-  // TODO remember: if empty it's an integrity violation
-  return s;
+    file_chunks.push_back(s_cipher_base64);
+  }
+
+  return UNKNOWN_ERROR;
 }
 
 /* The following method waas originally copied from and modified from this website:
@@ -372,10 +409,15 @@ string FileReaderWriter::decrypt_next_chunk() {
  * https://eclipsesource.com/blogs/2017/01/17/tutorial-aes-encryption-and-decryption-with-openssl/
  *
  */
-string FileReaderWriter::decrypt_chunk() {
-  // encrypted using aes-256-cbc
-  s_cipher_base64.push_back('\n');
-  char* ciphertext_base64 = (char*) s_cipher_base64.c_str();
+string FileReaderWriter::decrypt_chunk(int chunk_no) {
+
+  // If invalid chunk_number, then return integrity violation
+  if (chunk_no < 0 || chunk_no >= file_chunks.size())
+    return "";
+
+  string cipher_base64 = file_chunks[chunk_no];
+  cipher_base64.push_back('\n');
+  char* ciphertext_base64 = (char*) cipher_base64.c_str();
   int decryptedtext_len, ciphertext_len;
   size_t cipher_len;
   unsigned char *ciphertext, *cipher_alloced_mem;
@@ -695,39 +737,3 @@ int FileReaderWriter::encrypt(unsigned char *plaintext, int plaintext_len, unsig
     return ciphertext_len;
 }
 
-
-/*
-int main(int argc, char** argv) {
-  std::string key = "secret";
-  FileReaderWriter frw("testdir", key);
-  frw.init();
-
-  int t;
-  int opt = 0;
-  while ((opt = getopt(argc, argv, "r:w:k:")) != -1) {
-    switch(opt) {
-      case 'k':
-          key = optarg;break;
-      case 'r':
-          t = stoi(string(optarg));
-          for (int i = 0; i < t; i++) {
-            string s = frw.get_next_record_string();
-            //this_thread::sleep_for(chrono::seconds(1));
-            if (s.empty())
-              break;
-            cout << "> " << s << endl;
-          }
-          break;
-      case 'w':
-          //cout << frw.append_record(key + optarg) << endl;
-          frw.append_record(key + optarg);
-          break;
-      default:
-          cerr << "Invalid Command Line Argument\n";
-    }
-  }
-
-
-  return 0;
-}
-*/

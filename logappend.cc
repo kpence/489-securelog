@@ -4,43 +4,266 @@
 #include <string.h>
 
 #include "FileReaderWriter.h"
+#include "EntryParser.h"
 #include "error.h"
 
 using namespace std;
 
+#define ERROR_EXIT_CODE 255
+
+int test_and_append_entry();
+char event_type = '\0'; // arrival/departure
+char name_type = '\0'; // doctor/nurse
+string timestamp
+     , token
+     , name
+     , roomid
+     , logfile;
+
 int main(int argc, char** argv) {
-  string key = "secret";
-  FileReaderWriter frw("testdir", key);
-  frw.init();
+  // Opts
+  int non_batch_file_opt = 0;
+  string batchfile;
 
   int t;
   int opt = 0;
-  while ((opt = getopt(argc, argv, "r:w:k:")) != -1) {
+  while ((opt = getopt(argc, argv, "T:K:D:N:ALR:F:B:")) != -1) {
     switch(opt) {
-      case 'k':
-          key = optarg;break;
-      case 'r':
-          t = stoi(string(optarg));
-          for (int i = 0; i < t; i++) {
-            string s = frw.get_next_record_string();
-            if (s.empty()) {
-              //ErrorType e = ErrorType::INTEGRITY_VIOLATION;
-              //handleError(ErrorType::INTEGRITY_VIOLATION);
-              handleError(2);
-              break;
-            }
-            cout << "> " << s << endl;
+      case 'T':
+          if (!timestamp.empty()) {
+            handleInvalidInput();
+            exit(ERROR_EXIT_CODE);
           }
-          break;
-      case 'w':
-          //cout << frw.append_record(key + optarg) << endl;
-          frw.append_record(key + optarg);
-          break;
+          timestamp = optarg;break;
+      case 'K':
+          if (!token.empty()) {
+            handleInvalidInput();
+            exit(ERROR_EXIT_CODE);
+          }
+          token = optarg;break;
+      case 'D':
+          if (!name.empty()) {
+            handleInvalidInput();
+            exit(ERROR_EXIT_CODE);
+          }
+          name_type = 'D';
+          name = optarg;break;
+      case 'N':
+          if (!name.empty()) {
+            handleInvalidInput();
+            exit(ERROR_EXIT_CODE);
+          }
+          name_type = 'N';
+          name = optarg;break;
+      case 'A':
+      case 'L':
+          if (event_type != '\0') {
+            handleInvalidInput();
+            exit(ERROR_EXIT_CODE);
+          }
+          event_type = opt;break;
+      case 'R':
+          if (!roomid.empty()) {
+            handleInvalidInput();
+            exit(ERROR_EXIT_CODE);
+          }
+          timestamp = optarg;break;
+      case 'F':
+          if (!logfile.empty()) {
+            handleInvalidInput();
+            exit(ERROR_EXIT_CODE);
+          }
+          logfile = optarg;break;
+      case 'B':
+          if (!batchfile.empty()) {
+            handleInvalidInput();
+            exit(ERROR_EXIT_CODE);
+          }
+          batchfile = optarg;break;
       default:
-          cerr << "Invalid Command Line Argument\n";
+          handleInvalidInput();
+          exit(ERROR_EXIT_CODE);
+    }
+  }
+
+  // If batch file and any other arguments are set, then invalid input.
+  if (!batchfile.empty() && non_batch_file_opt != 0) {
+      handleInvalidInput();
+      exit(ERROR_EXIT_CODE);
+  }
+
+  // If batch file empty but missing anything necessary, then invalid input.
+  if (batchfile.empty() && (timestamp.empty() || token.empty() || name.empty()
+        || event_type == '\0' || logfile.empty()))
+  {
+    handleInvalidInput();
+    exit(ERROR_EXIT_CODE);
+  }
+
+  // Run_command will use all the variables set at the start
+  if (batchfile.empty()) {
+    test_and_append_entry();
+  }
+  else {
+    if (EntryParser::is_filepath_valid(batchfile)==0) {
+      handleInvalidInput();
+      exit(ERROR_EXIT_CODE);
+    }
+
+
+    // TODO Now handle the batch file stuff
+  }
+
+  return 0;
+}
+
+
+// This procedure will exit the program with error message if it finds anything wrong with the entry record
+int test_and_append_entry() {
+  // Now test each of the fields for valid input
+  string s;
+  int error = 0;
+  if (EntryParser::is_name_valid(name)==0) { error=1; }
+  else if (EntryParser::is_name_type_valid(name_type)==0) { error=1; }
+  else if (EntryParser::is_event_type_valid(event_type)==0) { error=1; }
+  else if (EntryParser::is_token_valid(token)==0) { error=1; }
+  else if (EntryParser::is_filepath_valid(logfile)==0) { error=1; }
+  else if (EntryParser::is_timestamp_valid(timestamp)==0) { error=1; }
+  else if (EntryParser::is_roomid_valid(roomid)==0) { error=1; }
+
+  error = 0; // TODO testing
+  if (error == 1) {
+    handleInvalidInput();
+    exit(ERROR_EXIT_CODE);
+  }
+
+  roomid = EntryParser::parse_roomid(roomid);
+
+  // Create log writer/reader
+  FileReaderWriter frw(logfile, token);
+  int status = frw.init();
+  if (status == INTEGRITY_VIOLATION) {
+    handleIntegrityViolation();
+    exit(ERROR_EXIT_CODE);
+  }
+
+  // Now test to see if the timestamp is a problem OR if it's empty that's ok (1 is empty)
+  if (frw.get_num_chunks() > 1) {
+    EntryParser p;
+
+    s = frw.get_record_string_before(frw.get_num_chunks()-1);
+    if (s.empty()) {
+      handleIntegrityViolation();
+      exit(ERROR_EXIT_CODE);
+    }
+    p.load_record(s, token);
+    if (!p.is_record_valid()) {
+      handleIntegrityViolation();
+      exit(ERROR_EXIT_CODE);
+    }
+    if (p.compare_timestamp(timestamp) != 0) {
+      handleInvalidInput();
+      exit(ERROR_EXIT_CODE);
+    }
+
+
+    // Now iterate through the records
+    int i = 1, in_hospital = 0;
+    string room_in;
+
+    while (i < frw.get_num_chunks()) {
+      i = frw.get_next_record_string(s, i);
+      if (s.empty()) {
+        handleIntegrityViolation();
+        exit(ERROR_EXIT_CODE);
+      }
+
+      // Load to record parser
+      p.load_record(s, token);
+      if (!p.is_record_valid()) {
+        handleIntegrityViolation();
+        exit(ERROR_EXIT_CODE);
+      }
+
+      // If the person isn't the one we want, then skip
+      if (p.same_person(name_type, name)==0)
+        continue;
+
+      // TODO check with parse whether it's an arrival or departure to/from room/hospital, and keep track if that's logical in this scope
+      if (p.get_event_type() == 'A' && p.get_roomid().empty()) {
+        if (in_hospital != 0) {
+          handleIntegrityViolation();
+          exit(ERROR_EXIT_CODE);
+        }
+        in_hospital = 1;
+      }
+      else if (p.get_event_type() == 'L' && p.get_roomid().empty()) {
+        if (in_hospital == 0 || !room_in.empty()) {
+          handleIntegrityViolation();
+          exit(ERROR_EXIT_CODE);
+        }
+        in_hospital = 0;
+      }
+      else if (p.get_event_type() == 'A' && !p.get_roomid().empty()) {
+        if (in_hospital == 0 || !room_in.empty()) {
+          handleIntegrityViolation();
+          exit(ERROR_EXIT_CODE);
+        }
+      }
+      else if (p.get_event_type() == 'L' && !p.get_roomid().empty()) {
+        if (in_hospital == 0 || room_in.empty()) {
+          handleIntegrityViolation();
+          exit(ERROR_EXIT_CODE);
+        }
+      }
+
+      // Also this shouldn't be possible (throw error just in case)
+      if (!room_in.empty() && in_hospital == 0) {
+        handleIntegrityViolation();
+        exit(ERROR_EXIT_CODE);
+      }
+
+      // Otherwise
+      room_in = p.get_roomid();
+    }
+
+    // After iterating, check if valid entry
+    if (roomid.empty() && event_type=='A') {
+      if (!room_in.empty() || in_hospital != 0) {
+        handleIntegrityViolation();
+        exit(ERROR_EXIT_CODE);
+      }
+    }
+    else if (roomid.empty() && event_type=='L') {
+      if (!room_in.empty() || in_hospital == 0) {
+        handleIntegrityViolation();
+        exit(ERROR_EXIT_CODE);
+      }
+    }
+    else if (!roomid.empty() && event_type=='A') {
+      if (!room_in.empty() || in_hospital == 0) {
+        handleIntegrityViolation();
+        exit(ERROR_EXIT_CODE);
+      }
+    }
+    else if (!roomid.empty() && event_type=='L') {
+      if (roomid.compare(room_in) != 0 || in_hospital == 0) {
+        handleIntegrityViolation();
+        exit(ERROR_EXIT_CODE);
+      }
+    }
+
+  }
+  else {
+    // If log file is empty then only accept roomless arrival records
+    if (!roomid.empty() || event_type=='L') {
+      handleInvalidInput();
+      exit(ERROR_EXIT_CODE);
     }
   }
 
 
-  return 0;
+  // PASSED - NOW Append the entry
+  s = EntryParser::make_record(token,timestamp,event_type,name_type,name,roomid);
+  frw.append_record(s);
 }

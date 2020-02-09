@@ -1,3 +1,4 @@
-Debugging analysis:
 
-1. The problem can't be the key or the salt. (And I feel safe ruling out key size being a problem)
+
+
+1. I need to make sure that the commands entered by the user are valid, they cannot use anything but alphanumerics for all the fields
