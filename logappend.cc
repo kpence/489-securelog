@@ -4,6 +4,8 @@
 #include <utility>
 #include <vector>
 #include <string.h>
+#include <fstream>
+#include <algorithm>
 
 //#include "FileReaderWriter.h"
 //#include "EntryParser.h"
@@ -14,37 +16,97 @@ using namespace std;
 
 #define ERROR_EXIT_CODE 255
 
-int test_and_append_entry();
 char event_type = '\0'; // arrival/departure
 char name_type = '\0'; // doctor/nurse
 string timestamp
      , token
      , name
      , roomid
-     , logfile;
+     , logfile
+     , batchfile;
+
+ifstream ifs; // This is for batch files
+
+int test_and_append_entry();
+int logappend(int argc, char**argv, int batch_mode);
 
 int main(int argc, char** argv) {
-  // Opts
+
+  // Run the initial program, continue if in batch mode
+  int i = logappend(argc, argv, 0);
+
+  while (i == 1) {
+    // if batch_mode, read line from ifs and then set those values in the argv and argc
+    // If read end of file, return 0 therefore ending batch mode
+    if (ifs.peek() == EOF) {
+      return 0;
+    }
+
+    // Get line then parse it for arguments
+    vector<string> args_str;
+    args_str.push_back("./logappend");
+    string line;
+    getline(ifs, line);
+
+    size_t itr = 0;
+    while ((itr = line.find(' ')) != string::npos) {
+      args_str.push_back(line.substr(0,itr));
+      line.erase(0,itr+1);
+    }
+    args_str.push_back(line);
+
+    char** arr = new char*[args_str.size()];
+    for (int j = 0; j < args_str.size(); j++) {
+      arr[j] = new char[args_str[j].size()+1];
+      strcpy(arr[j],args_str[j].c_str());
+    }
+
+    i = logappend(args_str.size(), arr, 1);
+
+    // Memory Leak -- Unforutnately this doesn't get called when in batch mode and there's a program-terminating error, I would need to change up my code to resolve this, but need to prioritize my time
+    for (int j = 0; j < args_str.size(); j++) {
+      delete arr[j];
+    }
+    delete [] arr;
+  }
+}
+
+// Returns 1 if initiating batch mode
+int logappend(int argc, char**argv, int batch_mode) {
   int non_batch_file_opt = 0;
-  string batchfile;
+
+  event_type = '\0'; // arrival/departure
+  name_type = '\0'; // doctor/nurse
+  timestamp.clear();
+  token.clear();
+  name.clear();
+  roomid.clear();
+  logfile.clear();
+  batchfile.clear();
+
 
   int t;
   int opt = 0;
+  optind = 1;
   while ((opt = getopt(argc, argv, "T:K:D:N:ALR:F:B:")) != -1) {
     switch(opt) {
       case 'T':
+          non_batch_file_opt = 1;
           if (!timestamp.empty()) {
             handleInvalidInput();
             exit(ERROR_EXIT_CODE);
           }
           timestamp = optarg;break;
       case 'K':
+          non_batch_file_opt = 1;
           if (!token.empty()) {
             handleInvalidInput();
             exit(ERROR_EXIT_CODE);
           }
-          token = optarg;break;
+          token = optarg;
+          break;
       case 'D':
+          non_batch_file_opt = 1;
           if (!name.empty()) {
             handleInvalidInput();
             exit(ERROR_EXIT_CODE);
@@ -52,6 +114,7 @@ int main(int argc, char** argv) {
           name_type = 'D';
           name = optarg;break;
       case 'N':
+          non_batch_file_opt = 1;
           if (!name.empty()) {
             handleInvalidInput();
             exit(ERROR_EXIT_CODE);
@@ -60,24 +123,31 @@ int main(int argc, char** argv) {
           name = optarg;break;
       case 'A':
       case 'L':
+          non_batch_file_opt = 1;
           if (event_type != '\0') {
             handleInvalidInput();
             exit(ERROR_EXIT_CODE);
           }
           event_type = opt;break;
       case 'R':
+          non_batch_file_opt = 1;
           if (!roomid.empty()) {
             handleInvalidInput();
             exit(ERROR_EXIT_CODE);
           }
           roomid = optarg;break;
       case 'F':
+          non_batch_file_opt = 1;
           if (!logfile.empty()) {
             handleInvalidInput();
             exit(ERROR_EXIT_CODE);
           }
           logfile = optarg;break;
       case 'B':
+          if (batch_mode != 0) {
+            handleInvalidInput();
+            exit(ERROR_EXIT_CODE);
+          }
           if (!batchfile.empty()) {
             handleInvalidInput();
             exit(ERROR_EXIT_CODE);
@@ -114,7 +184,15 @@ int main(int argc, char** argv) {
     }
 
 
-    // TODO Now handle the batch file stuff
+    // Now handle the batch file stuff
+    ifs = ifstream(batchfile);
+    if (ifs.peek() == EOF) {
+      handleInvalidInput();
+      exit(ERROR_EXIT_CODE);
+    }
+
+    // initiate batch mode by returning 1 (hopefully no stack overflows....)
+    return 1;
   }
 
   return 0;
@@ -165,6 +243,7 @@ int test_and_append_entry() {
       exit(ERROR_EXIT_CODE);
     }
     if (p.compare_timestamp(timestamp) == 0) {
+      cerr << "Reason: Invalid time stamps\n";
       handleInvalidInput();
       exit(ERROR_EXIT_CODE);
     }
