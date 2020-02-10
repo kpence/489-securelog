@@ -243,7 +243,7 @@ int test_and_append_entry() {
       exit(ERROR_EXIT_CODE);
     }
     if (p.compare_timestamp(timestamp) == 0) {
-      cerr << "Reason: Invalid time stamps\n";
+      //cerr << "Reason: Invalid time stamps\n";
       handleInvalidInput();
       exit(ERROR_EXIT_CODE);
     }

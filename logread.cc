@@ -17,14 +17,6 @@
 using namespace std;
 
 int main(int argc, char** argv) {
-  string key = "secret";
-  FileReaderWriter frw("log1", key);
-  int status = frw.init();
-  if (status == INTEGRITY_VIOLATION) {
-		handleIntegrityViolation();
-		exit(ERROR_EXIT_CODE);
-  }
-	
 	string name
 			 , token
 			 , logfile;
@@ -113,6 +105,13 @@ int main(int argc, char** argv) {
 		}
 	}
 
+  FileReaderWriter frw(logfile, token);
+  int status = frw.init();
+  if (status == INTEGRITY_VIOLATION) {
+		handleIntegrityViolation();
+		exit(ERROR_EXIT_CODE);
+  }
+	
   EntryParser p;
 
   // This code prints out the rooms of name_type, name

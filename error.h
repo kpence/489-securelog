@@ -15,9 +15,9 @@
  *
  */
 
-void handleIntegrityViolation() { cerr<<"Integrity violation\n"; }
-void handleInvalidInput() { cerr<<"Invalid\n"; }
-void handleUnknownError() { cerr<<"Unknown error\n"; }
+void handleIntegrityViolation() { cerr<<"integrity violation\n"; }
+void handleInvalidInput() { cerr<<"invalid\n"; }
+void handleUnknownError() { cerr<<"unknown error\n"; }
 
 
 /*

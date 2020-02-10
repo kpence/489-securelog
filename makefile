@@ -7,6 +7,10 @@ LDFLAGS += -L /usr/local/lib `pkg-config --libs openssl` -g
 
 all: logread logappend
 
+coverage: CPPFLAGS += -fprofile-arcs -ftest-coverage
+coverage: LDFLAGS += -fprofile-arcs -ftest-coverage
+coverage: logread logappend
+
 %.o : %.cc
 	$(CXX) $^ -o $@ -c $(CPPFLAGS)
 
@@ -19,5 +23,5 @@ logread: logread.o EntryParser.o FileReaderWriter.o
 
 
 clean:
-	rm -f *.o logread logappend
+	rm -f *.o logread logappend *.gcno
 
