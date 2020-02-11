@@ -32,11 +32,11 @@ using ErrorType::SUCCESS;
 
 #define KEY_LENGTH 32
 #define IV_LENGTH 32
-#define RECORD_MAX_SIZE 16*10 - 2
+#define RECORD_MAX_SIZE (16-1)*10 - 2
 #define DECRYPTED_CHUNK_SIZE 16
 #define DECODED_CHUNK_SIZE 32
 #define CHUNK_SIZE 64
-#define VERIFICATION_CHUNK_STR "!12345abcPzJkqV!"
+#define VERIFICATION_CHUNK_STR "0!12345acPzJkqV!"
 
 // TODO remove
 void p_hex(unsigned char* s, size_t sz) {
@@ -67,12 +67,12 @@ int FileReaderWriter::init() {
 int FileReaderWriter::append_record(string rcd)
 {
   if (rcd.find_first_not_of("01234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-") != string::npos) {
-    cerr << "FAIL: Append record: Improper record string \n";
+    //cerr << "FAIL: Append record: Improper record string \n";
     return INVALID_INPUT;
   }
 
   if (rcd.length() >= RECORD_MAX_SIZE) {
-    cerr << "FAIL: Append record: Record too large\n";
+    //cerr << "FAIL: Append record: Record too large\n";
     return INVALID_INPUT;
   }
   // TODO (uncomment when done testing ) First verify the record
@@ -80,6 +80,7 @@ int FileReaderWriter::append_record(string rcd)
   //if (1 != validate_record())
     //return ret;
 
+  // TODO prepend each chunk I pass to append_and_encrypt_chunk with increasing enumerator plus one.
 
   // Append the record with the appropriate number of @ padding signs
   // Example, say decyphered chunk length is 4
@@ -88,11 +89,11 @@ int FileReaderWriter::append_record(string rcd)
   //^1234567@@@$
   //
   // V probably a better way to do this.... but w/e
-  int modulo = (rcd.length()+2) % DECRYPTED_CHUNK_SIZE;
-  int padAts = (DECRYPTED_CHUNK_SIZE - modulo) % DECRYPTED_CHUNK_SIZE;
+  int modulo = (rcd.length()+2) % (DECRYPTED_CHUNK_SIZE-1);
+  int padAts = ((DECRYPTED_CHUNK_SIZE-1) - modulo) % (DECRYPTED_CHUNK_SIZE-1);
 
   // Get number of chunks to append
-  int num = (rcd.length()+2) / DECRYPTED_CHUNK_SIZE;
+  int num = (rcd.length()+2) / (DECRYPTED_CHUNK_SIZE-1);
   if (modulo != 0) ++num;
 
   record_string += string(padAts,'@') + "$";
@@ -100,11 +101,12 @@ int FileReaderWriter::append_record(string rcd)
   // Make the command has acceptable form and has the token at the start of it.
   // Note: This doesn't check if it has correct parsable form, delegating that to logappend and logread.
   if (validate_record(record_string) == 0) {
-    cerr << "FAILURE: Failed to validate record: " << record_string << "\n";
+    //cerr << "FAILURE: Failed to validate record: " << record_string << "\n";
     return INVALID_INPUT;
   }
 
   // For each of these (if last one, then add the @ padding), encrypt it, and append it to the file,
+  unsigned char enumerator = 1;
   int i, status;
   string send = "^";
   if (num == 1) {
@@ -112,30 +114,36 @@ int FileReaderWriter::append_record(string rcd)
     if (padAts > 0)
       send += string(padAts,'@');
     send += "$";
+    send.insert(0,1, (char)enumerator);
     status = append_and_encrypt_chunk(send);
     if (status != SUCCESS) return status;
+    enumerator++;
   }
   else {
-    send += rcd.substr(0,DECRYPTED_CHUNK_SIZE-1);
-    rcd.erase(0,DECRYPTED_CHUNK_SIZE-1);
+    send += rcd.substr(0,DECRYPTED_CHUNK_SIZE-2);
+    rcd.erase(0,DECRYPTED_CHUNK_SIZE-2);
 
-    status = append_and_encrypt_chunk(send); // TODO check the status for each of these append chunks, or just throw an exception
+    send.insert(0,1, (char)enumerator);
+    status = append_and_encrypt_chunk(send); // check the status for each of these append chunks, or just throw an exception
     if (status != SUCCESS) return status;
+    enumerator++;
 
     for (i = 1; i < num; i++) {
       if (i == num-1) {
         send = rcd;
-        rcd.erase(0,DECRYPTED_CHUNK_SIZE-1-padAts);
+        rcd.erase(0,DECRYPTED_CHUNK_SIZE-2-padAts);
         if (padAts > 0)
           send += string(padAts,'@');
         send += "$";
       }
       else {
-        send = rcd.substr(0,DECRYPTED_CHUNK_SIZE);
-        rcd.erase(0,DECRYPTED_CHUNK_SIZE);
+        send = rcd.substr(0,DECRYPTED_CHUNK_SIZE-1);
+        rcd.erase(0,DECRYPTED_CHUNK_SIZE-1);
       }
-      status = append_and_encrypt_chunk(send); // TODO check the status for each of these append chunks, or just throw an exception
+      send.insert(0,1, (char)enumerator);
+      status = append_and_encrypt_chunk(send);
       if (status != SUCCESS) return status;
+      enumerator++;
     }
   }
 
@@ -220,7 +228,7 @@ int FileReaderWriter::append_and_encrypt_chunk(string chunk) {
   if (_wfs.is_open())
     _wfs << string((char*)ciphertext_base64, CHUNK_SIZE);
   else {
-    cerr << "FAILURE: Writing to invalid file\n";
+    //cerr << "FAILURE: Writing to invalid file\n";
     return INVALID_FILE_PATH;
   }
 
@@ -238,6 +246,7 @@ int FileReaderWriter::get_num_chunks() {
 int FileReaderWriter::parse_record(int chunk_no, int reverse) {
   // Read new chunks until you reach a $
   string s = decrypt_chunk(chunk_no);
+
   if (s.empty()) {
     record_string = "";
     return 0;
@@ -246,23 +255,36 @@ int FileReaderWriter::parse_record(int chunk_no, int reverse) {
 
   // If direction is -1, then reverse until you find 
   if (reverse == 1) {
-    while (s[0] != '^' && chunk_no > 1) {
+    while (s[1] != '^' && chunk_no > 1) {
       s = decrypt_chunk(--chunk_no);
     }
-    if (s[0] != '^') // failed to find valid record before point
+    if (s[1] != '^') // failed to find valid record before point
       return 0;
   }
 
+  unsigned char chunk_enum = 0;
+  unsigned char prev_chunk_enum = (unsigned char)s[0];
+
   // Read new chunks until record finishes
   while (s[DECRYPTED_CHUNK_SIZE-1] != '$') {
-    record_string += s;
+    record_string += s.substr(1);
     s = decrypt_chunk(++chunk_no);
+
     if (s.empty()) {
       record_string = "";
       return 0;
     }
+
+    // validate the enumerator values
+    chunk_enum = (unsigned char)s[0];
+    if (chunk_enum != prev_chunk_enum+1) {
+      record_string = "";
+      return 0;
+    }
+    prev_chunk_enum++;
+
   }
-  record_string += s;
+  record_string += s.substr(1);
   //cout << "decrypting, fin: " << record_string << endl;
 
   // If record isn't valid, integrity violation
@@ -378,7 +400,7 @@ int FileReaderWriter::load_file(string fname) {
   ofstream _wfs;
   _wfs.open(filename, ios_base::app);
   if (!_wfs.is_open()) {
-    cerr << "FAILURE: Invalid file path.\n";
+    //cerr << "FAILURE: Invalid file path.\n";
     return INVALID_FILE_PATH;
   }
 
