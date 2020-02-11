@@ -1,4 +1,5 @@
 *.o
+*.gcno
 *.txt
 bin
 logappend
