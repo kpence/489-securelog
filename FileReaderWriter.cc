@@ -118,6 +118,8 @@ int FileReaderWriter::append_record(string rcd)
     status = append_and_encrypt_chunk(send);
     if (status != SUCCESS) return status;
     enumerator++;
+    if (enumerator > 127)
+      enumerator = 1;
   }
   else {
     send += rcd.substr(0,DECRYPTED_CHUNK_SIZE-2);
@@ -127,6 +129,8 @@ int FileReaderWriter::append_record(string rcd)
     status = append_and_encrypt_chunk(send); // check the status for each of these append chunks, or just throw an exception
     if (status != SUCCESS) return status;
     enumerator++;
+    if (enumerator > 127)
+      enumerator = 1;
 
     for (i = 1; i < num; i++) {
       if (i == num-1) {
@@ -144,6 +148,8 @@ int FileReaderWriter::append_record(string rcd)
       status = append_and_encrypt_chunk(send);
       if (status != SUCCESS) return status;
       enumerator++;
+      if (enumerator > 127)
+        enumerator = 1;
     }
   }
 
@@ -262,7 +268,7 @@ int FileReaderWriter::parse_record(int chunk_no, int reverse) {
       return 0;
   }
 
-  unsigned char chunk_enum = 0;
+  unsigned char chunk_enum;
   unsigned char prev_chunk_enum = (unsigned char)s[0];
 
   // Read new chunks until record finishes
@@ -277,7 +283,7 @@ int FileReaderWriter::parse_record(int chunk_no, int reverse) {
 
     // validate the enumerator values
     chunk_enum = (unsigned char)s[0];
-    if (chunk_enum != prev_chunk_enum+1) {
+    if ((chunk_enum != prev_chunk_enum+1 && chunk_enum != 1) || prev_chunk_enum == 127) {
       record_string = "";
       return 0;
     }
