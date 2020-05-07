@@ -1,0 +1,168 @@
+[22712][environment] CWD = /root/2020spring/489/secure_log/build
+[22712][environment] No .inferconfig file found
+[22712][environment] Project root = /root/2020spring/489/secure_log/build
+[22712][environment] INFER_ARGS =   @/tmp/args.tmp.9fab82  ++Contents of '/tmp/args.tmp.9fab82':
+[22712][environment]                                         run
+[22712][environment]                                       
+[22712][environment] command line arguments:   infer run -- makeAnalyzer: checkers
+[22712][environment] Active checkers: annotation reachability (Java), biabduction (C/C++/ObjC, Java), fragment retains view (Java), immutable cast (Java), liveness (C/C++/ObjC), printf args (Java), ownership (C/C++/ObjC), RacerD (C/C++/ObjC, Java), SIOF (C/C++/ObjC), uninitialized variables (C/C++/ObjC)
+[22712][environment] Infer log identifier is 
+Infer version v0.15.0
+[22712][environment] Copyright 2009 - present Facebook. All Rights Reserved.
+[22712][environment] 
+[22712][   progress] Capturing in make/cc mode...
+[22712][environment] Running command make with env:
+[22712][environment] LS_COLORS=rs=0:di=01;34:ln=01;36:mh=00:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:mi=00:su=37;41:sg=30;43:ca=30;41:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arc=01;31:*.arj=01;31:*.taz=01;31:*.lha=01;31:*.lz4=01;31:*.lzh=01;31:*.lzma=01;31:*.tlz=01;31:*.txz=01;31:*.tzo=01;31:*.t7z=01;31:*.zip=01;31:*.z=01;31:*.Z=01;31:*.dz=01;31:*.gz=01;31:*.lrz=01;31:*.lz=01;31:*.lzo=01;31:*.xz=01;31:*.zst=01;31:*.tzst=01;31:*.bz2=01;31:*.bz=01;31:*.tbz=01;31:*.tbz2=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.war=01;31:*.ear=01;31:*.sar=01;31:*.rar=01;31:*.alz=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.cab=01;31:*.wim=01;31:*.swm=01;31:*.dwm=01;31:*.esd=01;31:*.jpg=01;35:*.jpeg=01;35:*.mjpg=01;35:*.mjpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.svgz=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.webm=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.flv=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.cgm=01;35:*.emf=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=00;36:*.au=00;36:*.flac=00;36:*.m4a=00;36:*.mid=00;36:*.midi=00;36:*.mka=00;36:*.mp3=00;36:*.mpc=00;36:*.ogg=00;36:*.ra=00;36:*.wav=00;36:*.oga=00;36:*.opus=00;36:*.spx=00;36:*.xspf=00;36: 
+[22712][environment] SSH_CONNECTION=50.24.30.172 50949 64.227.48.56 22 
+[22712][environment] LESSCLOSE=/usr/bin/lesspipe %s %s 
+[22712][environment] LANG=C.UTF-8 
+[22712][environment] OLDPWD=/root/2020spring/438 
+[22712][environment] XDG_SESSION_ID=187 
+[22712][environment] USER=root 
+[22712][environment] PWD=/root/2020spring/489/secure_log/build 
+[22712][environment] HOME=/root 
+[22712][environment] SSH_CLIENT=165.91.13.8 10647 22 
+[22712][environment] TMUX=/tmp/tmux-0/default,25903,8 
+[22712][environment] XDG_DATA_DIRS=/usr/local/share:/usr/share:/var/lib/snapd/desktop 
+[22712][environment] SSH_TTY=/dev/pts/1 
+[22712][environment] MAIL=/var/mail/root 
+[22712][environment] TERM=screen 
+[22712][environment] SHELL=/bin/bash 
+[22712][environment] TMUX_PANE=%29 
+[22712][environment] SHLVL=2 
+[22712][environment] LOGNAME=root 
+[22712][environment] XDG_RUNTIME_DIR=/run/user/0 
+[22712][environment] LESSOPEN=| /usr/bin/lesspipe %s 
+[22712][environment] _=/usr/local/bin/infer 
+[22712][environment] INFER_CWD=/root/2020spring/489/secure_log/build 
+[22712][environment] INFER_ARGS=@/tmp/args.tmp.9fab82 
+[22712][environment] INFER_TOP_RESULTS_DIR=/root/2020spring/489/secure_log/build/infer-out 
+[22712][environment] NO_BUCKD=1
+[22712][environment] PATH=/opt/infer-linux64-v0.15.0/lib/infer/infer/bin/../lib/wrappers:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin 
+[22712][environment] INFER_OLD_PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin
+[22712][environment] 
+
+[22720][environment] CWD = /root/2020spring/489/secure_log/build
+[22720][environment] No .inferconfig file found
+[22720][environment] Project root = /root/2020spring/489/secure_log/build
+[22720][environment] INFER_ARGS =   @/tmp/args.tmp.15758d  ++Contents of '/tmp/args.tmp.15758d':
+[22720][environment]                                         @/tmp/args.tmp.9fab82 logread.cc -o
+[22720][environment]                                         logread.o -c -g -Wall
+[22720][environment]                                         ++Contents of '/tmp/args.tmp.9fab82':
+[22720][environment]                                           run
+[22720][environment]                                         
+[22720][environment]                                       
+[22720][environment] command line arguments:   g++ logread.cc -o logread.o -c -g -WallAnalyzer: checkers
+[22720][environment] Active checkers: annotation reachability (Java), biabduction (C/C++/ObjC, Java), fragment retains view (Java), immutable cast (Java), liveness (C/C++/ObjC), printf args (Java), ownership (C/C++/ObjC), RacerD (C/C++/ObjC, Java), SIOF (C/C++/ObjC), uninitialized variables (C/C++/ObjC)
+[22720][      debug] 
+[22720][      debug] *** Beginning capture of file /root/2020spring/489/secure_log/build/logread.cc ***
+[22720][      debug] Clang frontend action is translating and linting
+[22720][      debug] Loading the following linters files: /opt/infer-linux64-v0.15.0/lib/infer/infer/bin/../lib/linter_rules/linters.al
+[22720][      debug] Elapsed: 2.655s.
+[22720][      debug] 
+[22720][environment] Infer log identifier is 
+
+[22731][environment] CWD = /root/2020spring/489/secure_log/build
+[22731][environment] No .inferconfig file found
+[22731][environment] Project root = /root/2020spring/489/secure_log/build
+[22731][environment] INFER_ARGS =   @/tmp/args.tmp.694adf  ++Contents of '/tmp/args.tmp.694adf':
+[22731][environment]                                         @/tmp/args.tmp.9fab82 EntryParser.cc
+[22731][environment]                                         -o EntryParser.o -c -g -Wall
+[22731][environment]                                         ++Contents of '/tmp/args.tmp.9fab82':
+[22731][environment]                                           run
+[22731][environment]                                         
+[22731][environment]                                       
+[22731][environment] command line arguments:   g++ EntryParser.cc -o EntryParser.o -c -g -WallAnalyzer: checkers
+[22731][environment] Active checkers: annotation reachability (Java), biabduction (C/C++/ObjC, Java), fragment retains view (Java), immutable cast (Java), liveness (C/C++/ObjC), printf args (Java), ownership (C/C++/ObjC), RacerD (C/C++/ObjC, Java), SIOF (C/C++/ObjC), uninitialized variables (C/C++/ObjC)
+[22731][      debug] 
+[22731][      debug] *** Beginning capture of file /root/2020spring/489/secure_log/build/EntryParser.cc ***
+[22731][      debug] Clang frontend action is translating and linting
+[22731][      debug] Loading the following linters files: /opt/infer-linux64-v0.15.0/lib/infer/infer/bin/../lib/linter_rules/linters.al
+[22731][      debug] Elapsed: 978ms.
+[22731][      debug] 
+[22731][environment] Infer log identifier is 
+
+[22742][environment] CWD = /root/2020spring/489/secure_log/build
+[22742][environment] No .inferconfig file found
+[22742][environment] Project root = /root/2020spring/489/secure_log/build
+[22742][environment] INFER_ARGS =   @/tmp/args.tmp.04ff9b  ++Contents of '/tmp/args.tmp.04ff9b':
+[22742][environment]                                         @/tmp/args.tmp.9fab82
+[22742][environment]                                         FileReaderWriter.cc -o
+[22742][environment]                                         FileReaderWriter.o -c -g -Wall
+[22742][environment]                                         ++Contents of '/tmp/args.tmp.9fab82':
+[22742][environment]                                           run
+[22742][environment]                                         
+[22742][environment]                                       
+[22742][environment] command line arguments:   g++ FileReaderWriter.cc -o FileReaderWriter.o -c -g
+[22742][environment]                           -WallAnalyzer: checkers
+[22742][environment] Active checkers: annotation reachability (Java), biabduction (C/C++/ObjC, Java), fragment retains view (Java), immutable cast (Java), liveness (C/C++/ObjC), printf args (Java), ownership (C/C++/ObjC), RacerD (C/C++/ObjC, Java), SIOF (C/C++/ObjC), uninitialized variables (C/C++/ObjC)
+[22742][      debug] 
+[22742][      debug] *** Beginning capture of file /root/2020spring/489/secure_log/build/FileReaderWriter.cc ***
+[22742][      debug] Clang frontend action is translating and linting
+[22742][      debug] Loading the following linters files: /opt/infer-linux64-v0.15.0/lib/infer/infer/bin/../lib/linter_rules/linters.al
+[22742][      debug] Elapsed: 2.726s.
+[22742][      debug] 
+[22742][environment] Infer log identifier is 
+
+[22753][environment] CWD = /root/2020spring/489/secure_log/build
+[22753][environment] No .inferconfig file found
+[22753][environment] Project root = /root/2020spring/489/secure_log/build
+[22753][environment] INFER_ARGS =   @/tmp/args.tmp.3aac8c  ++Contents of '/tmp/args.tmp.3aac8c':
+[22753][environment]                                         @/tmp/args.tmp.9fab82 logread.o
+[22753][environment]                                         EntryParser.o FileReaderWriter.o -o
+[22753][environment]                                         logread -L /usr/local/lib -lssl
+[22753][environment]                                         -lcrypto -g -Wall
+[22753][environment]                                         ++Contents of '/tmp/args.tmp.9fab82':
+[22753][environment]                                           run
+[22753][environment]                                         
+[22753][environment]                                       
+[22753][environment] command line arguments:   g++ logread.o EntryParser.o FileReaderWriter.o -o
+[22753][environment]                           logread -L /usr/local/lib -lssl -lcrypto -g -WallAnalyzer: checkers
+[22753][environment] Active checkers: annotation reachability (Java), biabduction (C/C++/ObjC, Java), fragment retains view (Java), immutable cast (Java), liveness (C/C++/ObjC), printf args (Java), ownership (C/C++/ObjC), RacerD (C/C++/ObjC, Java), SIOF (C/C++/ObjC), uninitialized variables (C/C++/ObjC)
+[22753][environment] Infer log identifier is 
+
+[22764][environment] CWD = /root/2020spring/489/secure_log/build
+[22764][environment] No .inferconfig file found
+[22764][environment] Project root = /root/2020spring/489/secure_log/build
+[22764][environment] INFER_ARGS =   @/tmp/args.tmp.5452fd  ++Contents of '/tmp/args.tmp.5452fd':
+[22764][environment]                                         @/tmp/args.tmp.9fab82 logappend.cc -o
+[22764][environment]                                         logappend.o -c -g -Wall
+[22764][environment]                                         ++Contents of '/tmp/args.tmp.9fab82':
+[22764][environment]                                           run
+[22764][environment]                                         
+[22764][environment]                                       
+[22764][environment] command line arguments:   g++ logappend.cc -o logappend.o -c -g -WallAnalyzer: checkers
+[22764][environment] Active checkers: annotation reachability (Java), biabduction (C/C++/ObjC, Java), fragment retains view (Java), immutable cast (Java), liveness (C/C++/ObjC), printf args (Java), ownership (C/C++/ObjC), RacerD (C/C++/ObjC, Java), SIOF (C/C++/ObjC), uninitialized variables (C/C++/ObjC)
+[22764][      debug] 
+[22764][      debug] *** Beginning capture of file /root/2020spring/489/secure_log/build/logappend.cc ***
+[22764][      debug] Clang frontend action is translating and linting
+[22764][      debug] Loading the following linters files: /opt/infer-linux64-v0.15.0/lib/infer/infer/bin/../lib/linter_rules/linters.al
+[22764][      debug] Elapsed: 1.946s.
+[22764][      debug] 
+[22764][environment] Infer log identifier is 
+
+[22775][environment] CWD = /root/2020spring/489/secure_log/build
+[22775][environment] No .inferconfig file found
+[22775][environment] Project root = /root/2020spring/489/secure_log/build
+[22775][environment] INFER_ARGS =   @/tmp/args.tmp.f55c6f  ++Contents of '/tmp/args.tmp.f55c6f':
+[22775][environment]                                         @/tmp/args.tmp.9fab82 logappend.o
+[22775][environment]                                         EntryParser.o FileReaderWriter.o -o
+[22775][environment]                                         logappend -L /usr/local/lib -lssl
+[22775][environment]                                         -lcrypto -g -Wall
+[22775][environment]                                         ++Contents of '/tmp/args.tmp.9fab82':
+[22775][environment]                                           run
+[22775][environment]                                         
+[22775][environment]                                       
+[22775][environment] command line arguments:   g++ logappend.o EntryParser.o FileReaderWriter.o -o
+[22775][environment]                           logappend -L /usr/local/lib -lssl -lcrypto -g -WallAnalyzer: checkers
+[22775][environment] Active checkers: annotation reachability (Java), biabduction (C/C++/ObjC, Java), fragment retains view (Java), immutable cast (Java), liveness (C/C++/ObjC), printf args (Java), ownership (C/C++/ObjC), RacerD (C/C++/ObjC, Java), SIOF (C/C++/ObjC), uninitialized variables (C/C++/ObjC)
+[22775][environment] Infer log identifier is 
+[22712][   progress] Found 4 source files to analyze in /root/2020spring/489/secure_log/build/infer-out
+[22712][   progress] Starting analysis...
+[22712][   progress] 
+[22712][   progress] legend:
+[22712][   progress]   "F" analyzing a file
+[22712][   progress]   "." analyzing a procedure
+[22712][   progress] 
+[22712][   progress] F...........................................................F...................F..F
+[22712][   progress] Analysis finished in 19.378ss

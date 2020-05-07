@@ -1,0 +1,22 @@
+Found 2 issues
+
+FileReaderWriter.cc:122: error: DEAD_STORE
+  The value written to &enumerator (type unsigned char) is never used.
+  120.       enumerator++;
+  121.       if (enumerator > 127)
+  122. >       enumerator = 1;
+  123.     }
+  124.     else {
+
+FileReaderWriter.cc:678: error: NULL_DEREFERENCE
+  pointer `*buffer` last assigned on line 677 could be null and is dereferenced at line 678, column 3.
+  676.     int decodeLen = calcDecodeLength(b64message);
+  677.     *buffer = (unsigned char*)malloc(decodeLen + 1);
+  678. >   (*buffer)[decodeLen] = '\0';
+  679.   
+  680.     bio = BIO_new_mem_buf(b64message, -1);
+
+Summary of the reports
+
+  NULL_DEREFERENCE: 1
+        DEAD_STORE: 1
