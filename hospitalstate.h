@@ -199,7 +199,9 @@ int get_hospital_state(FileReaderWriter& frw, EntryParser& p, map<pair<char,stri
   }
 
   // If tracking rooms, remove the trailing comma at the end
-  rooms.pop_back();
+  if (!rooms.empty()) {
+    rooms.pop_back();
+  }
   return 1;
 }
 

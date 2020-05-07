@@ -22,6 +22,7 @@
 #include "errortype.h"
 
 using namespace std;
+/*
 using ErrorType::UNKNOWN_ERROR;
 using ErrorType::INVALID_INPUT;
 using ErrorType::INTEGRITY_VIOLATION;
@@ -29,6 +30,7 @@ using ErrorType::INVALID_FILE_PATH;
 using ErrorType::SUCCESS_NEW_FILE;
 using ErrorType::SUCCESS_FILE_EXISTS;
 using ErrorType::SUCCESS;
+*/
 
 #define KEY_LENGTH 32
 #define IV_LENGTH 32
@@ -411,7 +413,7 @@ int FileReaderWriter::load_file(string fname) {
   }
 
   // Test if file is empty and whether to write the signature to it
-  ifs = ifstream(fname);
+  ifs.open(fname);
   if (ifs.peek() == EOF) {
     append_and_encrypt_chunk(VERIFICATION_CHUNK_STR);
     return SUCCESS_NEW_FILE;

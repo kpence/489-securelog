@@ -1,9 +1,9 @@
 HOST_SYSTEM = $(shell uname | cut -f 1 -d_)
 SYSTEM ?= $(HOST_SYSTEM)
 CXX = g++
-CPPFLAGS += `pkg-config --cflags openssl` -g -Wall
+CPPFLAGS += `pkg-config --cflags openssl` -g -Wall -std=c++1y
 CXXFLAGS += -std=c++11 -g
-LDFLAGS += -L /usr/local/lib `pkg-config --libs openssl` -g -Wall
+LDFLAGS += -L /usr/local/lib `pkg-config --libs openssl` -g -Wall -std=c++1y
 
 all: logread logappend
 

@@ -185,7 +185,7 @@ int logappend(int argc, char**argv, int batch_mode) {
 
 
     // Now handle the batch file stuff
-    ifs = ifstream(batchfile);
+    ifs.open(batchfile);
     if (ifs.peek() == EOF) {
       handleInvalidInput();
       exit(ERROR_EXIT_CODE);
